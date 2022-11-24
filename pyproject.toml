@@ -4,10 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "halo-reader"
-version = "0.0.1"
+dynamic = ["version"]
 authors = [
   { name="Niko Leskinen", email="niko.leskinen@fmi.fi" },
 ]
 dependencies = [
   "numpy",
 ]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+[tool.setuptools.dynamic]
+version = {attr = "halo_reader.__version__"}
