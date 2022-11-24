@@ -12,8 +12,23 @@ dependencies = [
   "numpy",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "mypy"
+]
+
 
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "halo_reader.__version__"}
+
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+show_error_codes = true
+warn_return_any = true
+warn_unused_ignores = true
