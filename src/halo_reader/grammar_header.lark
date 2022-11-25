@@ -1,0 +1,77 @@
+?start: header
+
+header: _row+ _time_dimension_lines _time_range_dimension_lines _end_of_header
+
+_row: filename 
+      | system_id
+      | ngates
+      | gate_range
+      | gate_length
+      | npulses
+      | nrays
+      | scantype
+      | focus_range
+      | start_time
+      | resolution
+      | altitude_of_measurement
+
+
+_md{key, val}: key ":\t" val _ENDL
+filename: _md{"Filename", STRING}
+system_id: _md{"System ID", STRING}
+ngates: _md{"Number of gates", INTEGER}
+gate_range: _md{"Range gate length (m)", DECIMAL}
+gate_length: _md{"Gate length (pts)", INTEGER}
+npulses: _md{"Pulses/ray", INTEGER}
+nrays: _md{"No. of rays in file", INTEGER}
+scantype: _md{"Scan type", SCANTYPE}
+focus_range: _md{"Focus range", INTEGER}
+start_time: _md{"Start time", STRING}
+resolution: _md{"Resolution (m/s)", DECIMAL}
+altitude_of_measurement: ALTITUDE_OF_MEASUREMENT
+
+ALTITUDE_OF_MEASUREMENT: "Altitude of measurement (center of gate) = (range gate + 0.5) * Gate length" _ENDL
+
+_time_dimension_lines: "Data line 1: " time_dimension_variables _ENDL _precisions _ENDL
+_time_range_dimension_lines: "Data line 2: " time_range_dimension_variables _ENDL _precisions " - repeat for no. gates" _ENDL
+
+time_dimension_variables: time_dimension_variable (" " " "? time_dimension_variable)*
+time_range_dimension_variables: time_range_dimension_variable (" " " "? time_range_dimension_variable)*
+
+time_dimension_variable: DECIMAL_TIME_H
+                        | AZIMUTH_DEG
+                        | ELEVATION_DEG
+                        | PITCH_DEG
+                        | ROLL_DEG
+
+time_range_dimension_variable: RANGE_GATE
+                         | DOPPLER
+                         | INTENSITY
+                         | BETA
+
+DECIMAL_TIME_H: "Decimal time (hours)"
+AZIMUTH_DEG: "Azimuth (degrees)"
+ELEVATION_DEG: "Elevation (degrees)"
+PITCH_DEG: "Pitch (degrees)"
+ROLL_DEG: "Roll (degrees)"
+
+RANGE_GATE: "Range Gate"
+DOPPLER: "Doppler (m/s)"
+INTENSITY: "Intensity (SNR + 1)"
+BETA: "Beta (m-1 sr-1)"
+
+
+_precisions: _precision ("," _precision)*
+_precision: _PRECISION_FMT ("," _PRECISION_MULT)?
+_PRECISION_FMT: /[ief]\d+(\.\d+)?/
+_PRECISION_MULT: INTEGER "x"
+
+_end_of_header: "****" _ENDL
+
+SCANTYPE: "Stare"
+
+INTEGER: /[0-9]+/
+DECIMAL: /[-+]?/ INTEGER ("." INTEGER)?
+STRING: /(\w|[- .,:()=*])+/
+
+_ENDL: "\r\n"

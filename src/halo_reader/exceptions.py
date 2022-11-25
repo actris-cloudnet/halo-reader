@@ -1,0 +1,2 @@
+class HeaderNotFound(Exception):
+    pass

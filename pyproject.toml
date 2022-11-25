@@ -10,6 +10,8 @@ authors = [
 ]
 dependencies = [
   "numpy",
+  "lark",
+  "attrs",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +19,8 @@ dev = [
   "mypy"
 ]
 
+[project.scripts]
+halodump = "halo_reader.cli:hpl_dump"
 
 [tool.setuptools.packages.find]
 where = ["src"]
