@@ -1,6 +1,8 @@
+
 from attrs import define
-from typing import Optional
+
 from .attribute import Attribute
+
 
 @define
 class Metadata:
@@ -16,3 +18,11 @@ class Metadata:
     start_time: Attribute
     resolution: Attribute
 
+    def __str__(self) -> str:
+        _str = ""
+        for _attr in self.__attrs_attrs__:
+            attr = getattr(self, getattr(_attr, "name"))
+            _str += f"{attr}\n"
+        return _str
+    def __repr__(self) -> str:
+        return str(self)

@@ -1,5 +1,7 @@
-from attrs import define
 from typing import Optional
+
+from attrs import define
+
 
 @define
 class Attribute:
@@ -8,7 +10,10 @@ class Attribute:
     units: Optional[str] = None
 
     def __str__(self) -> str:
-        return f"{self.name}: {self.value} [{self.units}]"
+        if self.units is not None:
+            return f"{self.name:15}{self.value} {self.units}"
+        else:
+            return f"{self.name:15}{self.value}"
+
     def __repr__(self) -> str:
         return f"Attr[{str(self)}]"
-
