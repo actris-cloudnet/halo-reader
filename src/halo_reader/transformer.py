@@ -1,9 +1,9 @@
-## flake8: noqa
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 import lark
+import numpy as np
 import numpy.typing as npt
 
 from .attribute import Attribute
@@ -154,8 +154,19 @@ def unitfunc(key: str, units: str) -> Callable[[list], dict]:
 
 
 def range_func(range: Variable, gate_range: Attribute) -> Variable:
-    range_ = (range.data[0,:] + 0.5) * gate_range.value
-    return Variable(name="range", dimensions=("range",), units=gate_range.units, data=range_)
+    if not isinstance(range.data, np.ndarray) or not isinstance(
+        gate_range.value, float
+    ):
+        raise TypeError
+    range_ = (range.data[0, :] + 0.5) * gate_range.value
+    if not isinstance(range_, np.ndarray):
+        raise TypeError
+    return Variable(
+        name="range",
+        dimensions=("range",),
+        units=gate_range.units,
+        data=range_,
+    )
 
 
 def _time_fmt1_to_datetime(m: re.Match) -> datetime:
@@ -167,4 +178,5 @@ def _time_fmt1_to_datetime(m: re.Match) -> datetime:
         minute=int(m.group(5)),
         second=int(m.group(6)),
         microsecond=int(m.group(7).ljust(6, "0")),
+        tzinfo=timezone.utc,
     )

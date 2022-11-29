@@ -5,11 +5,13 @@ from pathlib import Path
 import lark
 import numpy as np
 import numpy.typing as npt
+from typing import Any
 
 from halo_reader.data_reader import read_data
 from halo_reader.halo import Halo
-from halo_reader.variable import Variable
 from halo_reader.metadata import Metadata
+from halo_reader.variable import Variable
+
 from .debug import *
 from .exceptions import HeaderNotFound
 from .transformer import HeaderTransformer
@@ -22,33 +24,57 @@ header_parser = lark.Lark(
 )
 
 
-def read(src: list[Path], src_bg: list[Path]) -> None:
+def read(src: list[Path], src_bg: list[Path]) -> Halo | None:
+    halos = []
+    if len(src_bg) > 0:
+        raise NotImplementedError
     for i, s in enumerate(src):
         header_end, header_bytes = _read_header(s)
         metadata, time_vars, time_range_vars, range_func = header_parser.parse(
             header_bytes.decode()
         )
         data_bytes = _read_data(s, header_end)
-        read_data(data_bytes, metadata.ngates.value, time_vars, time_range_vars)
+        if not isinstance(metadata.ngates.value, int):
+            raise TypeError
+        read_data(
+            data_bytes, metadata.ngates.value, time_vars, time_range_vars
+        )
         vars = {var.name: var for var in time_vars + time_range_vars}
         vars["time"] = _decimaltime2timestamp(vars["time"], metadata)
         vars["range"] = range_func(vars["range"], metadata.gate_range)
-        halo = Halo(metadata=metadata, **vars)
-        print(halo)
+        halos.append(Halo(metadata=metadata, **vars))
+    return Halo.merge(halos)
 
-def _decimaltime2timestamp(time: Variable, md: Metadata):
+
+def _decimaltime2timestamp(time: Variable, md: Metadata) -> Variable:
     if time.long_name != "decimal time" or time.units != "hours":
         raise NotImplementedError
     if md.start_time.units != "unix time":
         raise NotImplementedError
-    t_start = np.floor(md.start_time.value)
-    time_ = t_start + 3600*time.data
-    #if _isdecreasing(time_):
-    #    raise NotImplementedError
-    return Variable(name="time", data=time_, dimensions=("time",), units="unix time" )
+    day_in_seconds = 86400
+    hour_in_seconds = 3600
+    if not isinstance(md.start_time.value, float):
+        raise TypeError
+    t_start = np.floor(md.start_time.value / day_in_seconds) * day_in_seconds
+    if not isinstance(time.data, np.ndarray):
+        raise TypeError
+    time_ = t_start + hour_in_seconds * time.data
+    i_day_changed = _find_change_of_day(0, time_)
+    while i_day_changed >= 0:
+        time_[i_day_changed:] += day_in_seconds
+        i_day_changed = _find_change_of_day(i_day_changed, time_)
+    return Variable(
+        name="time", data=time_, dimensions=("time",), units="unix time"
+    )
 
-def _isdecreasing(x: npt.NDArray) -> bool:
-    return np.any(np.diff(x) < 0)
+
+def _find_change_of_day(start: int, time: npt.NDArray) -> int:
+    half_day = 43200
+    for i, (a, b) in enumerate(zip(time[start:-1], time[start + 1 :])):
+        if a - b > half_day:
+            return i + 1
+    return -1
+
 
 def _read_header(src: Path) -> tuple[int, bytes]:
     with src.open("rb") as f:
@@ -58,10 +84,12 @@ def _read_header(src: Path) -> tuple[int, bytes]:
         header_bytes = f.read(header_end)
     return header_end, header_bytes
 
+
 def _read_data(src: Path, header_end: int) -> bytes:
     with src.open("rb") as f:
         f.seek(header_end)
         return f.read()
+
 
 def _find_header_end(f: BufferedReader) -> int:
     guess = 1024

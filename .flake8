@@ -1,0 +1,25 @@
+[flake8]
+
+exclude = 
+  .git,
+  __pycache__,
+  .mypy_cache
+
+filename = *.py
+
+#F401: module imported but unused
+#F403: "from module import *" used; unable to detect undefined names
+#W503: line break before binary operator
+#E203: whitespace before ",", ";", or ":"
+
+ignore =
+  F401, 
+  F403,
+  W503,
+  E203
+
+#E731: do not assign a lambda expression, use a def
+per-file-ignores =
+  src/halo_reader/transformer.py:E731
+
+

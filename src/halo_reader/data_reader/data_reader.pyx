@@ -8,7 +8,7 @@ from libc.stdlib cimport atof, calloc, free, strtof
 from libc.string cimport strcmp, strlen, strtok, strlen, strspn
 import cython
 
-def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], time_range_vars: list[Variable]):
+def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], time_range_vars: list[Variable]) -> None:
     cdef char * data_c = data_py 
     cdef char * token
 

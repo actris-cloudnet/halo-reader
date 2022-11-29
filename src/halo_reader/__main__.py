@@ -1,3 +1,3 @@
-from halo_reader.cli import hpl_dump
+from halo_reader.cli import halo_dump
 
-hpl_dump()
+halo_dump()

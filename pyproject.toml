@@ -25,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-halodump = "halo_reader.cli:hpl_dump"
+halodump = "halo_reader.cli:halo_dump"
 
 [tool.setuptools.packages.find]
 where = ["src"]

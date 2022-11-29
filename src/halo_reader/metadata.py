@@ -1,7 +1,9 @@
+from __future__ import annotations
 
 from attrs import define
 
 from .attribute import Attribute
+from halo_reader.debug import *
 
 
 @define
@@ -19,10 +21,28 @@ class Metadata:
     resolution: Attribute
 
     def __str__(self) -> str:
-        _str = ""
-        for _attr in self.__attrs_attrs__:
-            attr = getattr(self, getattr(_attr, "name"))
-            _str += f"{attr}\n"
-        return _str
+        str_ = ""
+        for attr_attr in self.__attrs_attrs__:
+            metadata_attr = getattr(self, getattr(attr_attr, "name"))
+            str_ += f"{metadata_attr}\n"
+        return str_
+
     def __repr__(self) -> str:
         return str(self)
+
+    @classmethod
+    def merge(cls, metadata_list: list[Metadata]) -> Metadata | None:
+        if len(metadata_list) == 0:
+            return None
+        if len(metadata_list) == 1:
+            return metadata_list[0]
+        metadata_attrs = {}
+        for attr_attr in cls.__attrs_attrs__:
+            name = getattr(attr_attr, "name")
+            metadata_attr_list = [getattr(md, name) for md in metadata_list]
+            metadata_attr_class = metadata_attr_list[0].__class__
+            metadata_attr_merged = metadata_attr_class.merge(
+                metadata_attr_list
+            )
+            metadata_attrs[name] = metadata_attr_merged
+        return Metadata(**metadata_attrs)
