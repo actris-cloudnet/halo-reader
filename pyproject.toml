@@ -12,7 +12,6 @@ dependencies = [
   "cython",
   "numpy",
   "lark",
-  "attrs",
   "netCDF4",
 ]
 

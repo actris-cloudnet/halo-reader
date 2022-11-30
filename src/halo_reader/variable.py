@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import netCDF4
 import numpy as np
 import numpy.typing as npt
-from attrs import define
 
 from halo_reader.debug import *
 from halo_reader.type_guards import is_ndarray_list
 from halo_reader.utils import indent_str
 
 
-@define
+@dataclass(slots=True)
 class Variable:
     name: str
     standard_name: str | None = None

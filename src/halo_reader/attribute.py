@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TypeAlias
 
 import netCDF4
-from attrs import define
 
 from halo_reader.debug import *
 from halo_reader.scantype import ScanType
@@ -20,7 +20,7 @@ ValueType: TypeAlias = (
 )
 
 
-@define
+@dataclass(slots=True)
 class Attribute:
     name: str
     value: ValueType

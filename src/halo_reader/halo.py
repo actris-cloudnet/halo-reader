@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import netCDF4
 import numpy.typing as npt
-from attrs import define
 
 from halo_reader.debug import *
 from halo_reader.metadata import Metadata
 from halo_reader.variable import Variable
 
 
-@define
+@dataclass(slots=True)
 class Halo:
     metadata: Metadata
     time: Variable
@@ -24,9 +25,9 @@ class Halo:
 
     def __str__(self) -> str:
         str_ = ""
-        for attr_attr in self.__attrs_attrs__:
-            halo_attr = getattr(self, getattr(attr_attr, "name"))
-            str_ += f"{halo_attr}\n"
+        for attr_name in self.__dataclass_fields__.keys():
+            halo_field = getattr(self, attr_name)
+            str_ += f"{halo_field}\n"
         return str_
 
     def __repr__(self) -> str:
@@ -36,9 +37,8 @@ class Halo:
         nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
         self.time.nc_create_dimension(nc)
         self.range.nc_create_dimension(nc)
-        for attr_attr in self.__attrs_attrs__:
-            halo_attr = getattr(self, getattr(attr_attr, "name"))
-            halo_attr.nc_write(nc)
+        for attr_name in self.__dataclass_fields__.keys():
+            getattr(self, attr_name).nc_write(nc)
         nc_buf = nc.close()
         if isinstance(nc_buf, memoryview):
             return nc_buf
@@ -52,10 +52,9 @@ class Halo:
         if len(halos) == 1:
             return halos[0]
         halo_attrs = {}
-        for attr_attr in cls.__attrs_attrs__:
-            name = getattr(attr_attr, "name")
-            halo_attr_list = [getattr(h, name) for h in halos]
+        for attr_name in cls.__dataclass_fields__.keys():
+            halo_attr_list = [getattr(h, attr_name) for h in halos]
             halo_attr_class = halo_attr_list[0].__class__
             halo_attr_merged = halo_attr_class.merge(halo_attr_list)
-            halo_attrs[name] = halo_attr_merged
+            halo_attrs[attr_name] = halo_attr_merged
         return Halo(**halo_attrs)
