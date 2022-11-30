@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import netCDF4
 from attrs import define
 
-from .attribute import Attribute
 from halo_reader.debug import *
+
+from .attribute import Attribute
 
 
 @define
@@ -19,6 +21,12 @@ class Metadata:
     focus_range: Attribute
     start_time: Attribute
     resolution: Attribute
+
+    def nc_write(self, nc: netCDF4.Dataset) -> None:
+        nc_meta = nc.createGroup("metadata")
+        for attr_attr in self.__attrs_attrs__:
+            metadata_attr = getattr(self, getattr(attr_attr, "name"))
+            metadata_attr.nc_write(nc_meta)
 
     def __str__(self) -> str:
         str_ = ""

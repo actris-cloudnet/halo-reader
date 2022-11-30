@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-
-from attrs import define
-from halo_reader.utils import two_column_format
-from halo_reader.utils import timestamp2str
 from typing import TypeAlias
+
+import netCDF4
+from attrs import define
 
 from halo_reader.debug import *
 from halo_reader.scantype import ScanType
-from halo_reader.type_guards import is_float_or_float_list
-from halo_reader.type_guards import is_float_list
-from halo_reader.type_guards import is_str_list
+from halo_reader.type_guards import (
+    is_float_list,
+    is_float_or_float_list,
+    is_str_list,
+    is_str_or_str_list,
+)
+from halo_reader.utils import timestamp2str, two_column_format
 
 ValueType: TypeAlias = (
     str | float | int | ScanType | list[str] | list[float] | list[int]
@@ -22,6 +25,32 @@ class Attribute:
     name: str
     value: ValueType
     units: str | None = None
+
+    def nc_write(self, nc: netCDF4.Dataset) -> None:
+        if is_str_or_str_list(self.value):
+            if self.units is not None:
+                raise TypeError("Cannot write str values with units")
+            value_str = _str_or_str_list2str(self.value)
+            setattr(nc, self.name, value_str)
+        elif self.name == "start_time" and self.units == "unix time":
+            if is_float_or_float_list(self.value):
+                value_list = timestamp2str(self.value)
+                value_str = _str_or_str_list2str(value_list)
+                setattr(nc, self.name, value_str)
+            else:
+                raise TypeError
+        elif isinstance(self.value, float):
+            nc_var = nc.createVariable(self.name, "f8", ())
+            nc_var.units = self.units if self.units is not None else ""
+            nc_var[:] = self.value
+        elif isinstance(self.value, int):
+            nc_var = nc.createVariable(self.name, "u8", ())
+            nc_var.units = self.units if self.units is not None else ""
+            nc_var[:] = self.value
+        elif isinstance(self.value, ScanType):
+            setattr(nc, self.name, str(self.value))
+        else:
+            raise NotImplementedError
 
     def __str__(self) -> str:
         if self.name == "start_time" and self.units == "unix time":
@@ -78,3 +107,10 @@ def _list_values(attributes: list[Attribute]) -> list[str] | list[float]:
         return value_list
     else:
         raise TypeError
+
+
+def _str_or_str_list2str(val: str | list[str]) -> str:
+    if isinstance(val, list):
+        return "\n".join(val)
+    else:
+        return val

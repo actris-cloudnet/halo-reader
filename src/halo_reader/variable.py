@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import netCDF4
 import numpy as np
 import numpy.typing as npt
 from attrs import define
 
 from halo_reader.debug import *
-from halo_reader.utils import indent_str
 from halo_reader.type_guards import is_ndarray_list
+from halo_reader.utils import indent_str
 
 
 @define
@@ -17,6 +18,18 @@ class Variable:
     units: str | None = None
     dimensions: tuple[str, ...] | None = None
     data: npt.NDArray | None = None
+
+    def nc_create_dimension(self, nc: netCDF4.Dataset) -> None:
+        nc.createDimension(self.name, None)
+
+    def nc_write(self, nc: netCDF4.Dataset) -> None:
+        nc_var = nc.createVariable(self.name, "f8", self.dimensions, zlib=True)
+        nc_var.standard_name = (
+            self.standard_name if self.standard_name is not None else ""
+        )
+        nc_var.long_name = self.long_name if self.long_name is not None else ""
+        nc_var.units = self.units if self.units is not None else ""
+        nc_var[:] = self.data if self.data is not None else []
 
     def __str__(self) -> str:
         indent = 4 * " "

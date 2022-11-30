@@ -1,11 +1,11 @@
 import pkgutil
 from io import BufferedReader
 from pathlib import Path
+from typing import Any
 
 import lark
 import numpy as np
 import numpy.typing as npt
-from typing import Any
 
 from halo_reader.data_reader import read_data
 from halo_reader.halo import Halo

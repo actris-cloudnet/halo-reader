@@ -1,15 +1,17 @@
 import numpy as np
-from halo_reader.variable import Variable
-from halo_reader.debug import *
 
+from halo_reader.debug import *
+from halo_reader.variable import Variable
 
 from libc.stdio cimport printf, putc, sscanf
 from libc.stdlib cimport atof, calloc, free, strtof
-from libc.string cimport strcmp, strlen, strtok, strlen, strspn
+from libc.string cimport strcmp, strlen, strspn, strtok
+
 import cython
 
+
 def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], time_range_vars: list[Variable]) -> None:
-    cdef char * data_c = data_py 
+    cdef char * data_c = data_py
     cdef char * token
 
     # Count tokens and nprofiles

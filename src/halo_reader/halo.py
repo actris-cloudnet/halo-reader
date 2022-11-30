@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-
+import netCDF4
 import numpy.typing as npt
 from attrs import define
 
-from halo_reader.variable import Variable
-from halo_reader.metadata import Metadata
 from halo_reader.debug import *
+from halo_reader.metadata import Metadata
+from halo_reader.variable import Variable
 
 
 @define
@@ -31,6 +31,19 @@ class Halo:
 
     def __repr__(self) -> str:
         return str(self)
+
+    def to_nc(self) -> memoryview:
+        nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
+        self.time.nc_create_dimension(nc)
+        self.range.nc_create_dimension(nc)
+        for attr_attr in self.__attrs_attrs__:
+            halo_attr = getattr(self, getattr(attr_attr, "name"))
+            halo_attr.nc_write(nc)
+        nc_buf = nc.close()
+        if isinstance(nc_buf, memoryview):
+            return nc_buf
+        else:
+            raise TypeError
 
     @classmethod
     def merge(cls, halos: list[Halo]) -> Halo | None:

@@ -1,5 +1,6 @@
-from halo_reader.variable import Variable
 import cython
+
+from halo_reader.variable import Variable
 
 def read_data(
     data_py: bytes,

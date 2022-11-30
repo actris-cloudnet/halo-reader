@@ -9,10 +9,11 @@ authors = [
   { name="Niko Leskinen", email="niko.leskinen@fmi.fi" },
 ]
 dependencies = [
-  "cython==0.29.30",
+  "cython",
   "numpy",
   "lark",
   "attrs",
+  "netCDF4",
 ]
 
 [project.optional-dependencies]
@@ -22,10 +23,12 @@ dev = [
   "flake8",
   "autoflake",
   "isort",
+  "pre-commit"
 ]
 
 [project.scripts]
 halodump = "halo_reader.cli:halo_dump"
+halo2nc = "halo_reader.cli:halo2nc"
 
 [tool.setuptools.packages.find]
 where = ["src"]
