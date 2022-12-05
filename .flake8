@@ -1,6 +1,6 @@
 [flake8]
 
-exclude = 
+exclude =
   .git,
   __pycache__,
   .mypy_cache
@@ -13,7 +13,7 @@ filename = *.py
 #E203: whitespace before ",", ";", or ":"
 
 ignore =
-  F401, 
+  F401,
   F403,
   W503,
   E203
@@ -21,5 +21,3 @@ ignore =
 #E731: do not assign a lambda expression, use a def
 per-file-ignores =
   src/halo_reader/transformer.py:E731
-
-
