@@ -1,5 +1,5 @@
 import pkgutil
-from io import BufferedReader
+from io import BufferedReader, BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,9 @@ header_parser = lark.Lark(
 )
 
 
-def read(src: list[Path], src_bg: list[Path]) -> Halo | None:
+def read(
+    src: list[Path | BytesIO], src_bg: list[Path | BytesIO]
+) -> Halo | None:
     halos = []
     if len(src_bg) > 0:
         raise NotImplementedError
@@ -76,30 +78,43 @@ def _find_change_of_day(start: int, time: npt.NDArray) -> int:
     return -1
 
 
-def _read_header(src: Path) -> tuple[int, bytes]:
-    with src.open("rb") as f:
-        header_end = _find_header_end(f)
-        if header_end < 0:
-            raise HeaderNotFound
-        header_bytes = f.read(header_end)
+def _read_header(src: Path | BytesIO) -> tuple[int, bytes]:
+    if isinstance(src, Path):
+        with src.open("rb") as src_buf:
+            return _read_header_from_bytes(src_buf)
+    else:
+        return _read_header_from_bytes(src)
+
+
+def _read_header_from_bytes(
+    src: BufferedReader | BytesIO,
+) -> tuple[int, bytes]:
+    header_end = _find_header_end(src)
+    if header_end < 0:
+        raise HeaderNotFound
+    header_bytes = src.read(header_end)
     return header_end, header_bytes
 
 
-def _read_data(src: Path, header_end: int) -> bytes:
-    with src.open("rb") as f:
-        f.seek(header_end)
-        return f.read()
+def _read_data(src: Path | BytesIO, header_end: int) -> bytes:
+    if isinstance(src, Path):
+        with src.open("rb") as src_buf:
+            src_buf.seek(header_end)
+            return src_buf.read()
+    else:
+        src.seek(header_end)
+        return src_buf.read()
 
 
-def _find_header_end(f: BufferedReader) -> int:
+def _find_header_end(src: BufferedReader | BytesIO) -> int:
     guess = 1024
-    loc_end = _try_header_end(f, guess)
+    loc_end = _try_header_end(src, guess)
     if loc_end < 0:
-        loc_end = _try_header_end(f, 2 * guess)
+        loc_end = _try_header_end(src, 2 * guess)
     return loc_end
 
 
-def _try_header_end(f: BufferedReader, guess: int) -> int:
+def _try_header_end(f: BufferedReader | BytesIO, guess: int) -> int:
     pos = f.tell()
     fbytes = f.read(guess)
     f.seek(pos)
