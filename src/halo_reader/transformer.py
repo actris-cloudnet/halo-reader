@@ -22,6 +22,7 @@ class HeaderTransformer(lark.Transformer):
             "ngates",
             "npulses",
             "nrays",
+            "nwaypoints",
             "scantype",
             "focus_range",
         ]
@@ -145,7 +146,14 @@ class HeaderTransformer(lark.Transformer):
     VAD_STEPPED = lambda self, _: ScanType.VAD_STEPPED
     VAD_OVERLAPPING = lambda self, _: ScanType.VAD_OVERLAPPING
     USER1_STEPPED = lambda self, _: ScanType.USER1_STEPPED
+    USER1_CSM_OVERLAPPING = lambda self, _: ScanType.USER1_CSM_OVERLAPPING
     USER2_STEPPED = lambda self, _: ScanType.USER2_STEPPED
+    USER2_CSM = lambda self, _: ScanType.USER2_CSM
+    WIND_PROFILE = lambda self, _: ScanType.WIND_PROFILE
+    WIND_PROFILE_OVERLAPPING = (
+        lambda self, _: ScanType.WIND_PROFILE_OVERLAPPING
+    )
+    RHI = lambda self, _: ScanType.RHI
 
     STRING = lambda self, _: _.value
     INTEGER = lambda self, _: int(_.value)

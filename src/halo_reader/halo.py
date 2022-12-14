@@ -39,7 +39,9 @@ class Halo:
         self.time.nc_create_dimension(nc)
         self.range.nc_create_dimension(nc)
         for attr_name in self.__dataclass_fields__.keys():
-            getattr(self, attr_name).nc_write(nc)
+            halo_attr = getattr(self, attr_name)
+            if halo_attr is not None:
+                halo_attr.nc_write(nc)
         nc_buf = nc.close()
         if isinstance(nc_buf, memoryview):
             return nc_buf

@@ -17,17 +17,19 @@ class Metadata:
     gate_range: Attribute
     gate_length: Attribute
     npulses: Attribute
-    nrays: Attribute
     scantype: Attribute
     focus_range: Attribute
     start_time: Attribute
     resolution: Attribute
+    nrays: Attribute | None = None
+    nwaypoints: Attribute | None = None
 
     def nc_write(self, nc: netCDF4.Dataset) -> None:
         nc_meta = nc.createGroup("metadata")
         for attr_name in self.__dataclass_fields__.keys():
             metadata_attr = getattr(self, attr_name)
-            metadata_attr.nc_write(nc_meta)
+            if metadata_attr is not None:
+                metadata_attr.nc_write(nc_meta)
 
     def __str__(self) -> str:
         str_ = ""

@@ -33,6 +33,7 @@ def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], t
         else:
             raise UnexpectedDataTokens
 
+
     data_time = np.zeros((nprofiles,ntime_vars), dtype=np.dtype("float"))
     data_time_range = np.zeros((nprofiles,ngates,ntime_range_vars), dtype=np.dtype("float"))
     cdef double [:,:] data_time_view = data_time

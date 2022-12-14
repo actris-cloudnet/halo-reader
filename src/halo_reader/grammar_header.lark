@@ -9,6 +9,7 @@ _row: filename
       | gate_length
       | npulses
       | nrays
+      | nwaypoints
       | scantype
       | focus_range
       | start_time
@@ -24,6 +25,7 @@ gate_range: _md{"Range gate length (m)", DECIMAL}
 gate_length: _md{"Gate length (pts)", INTEGER}
 npulses: _md{"Pulses/ray", INTEGER}
 nrays: _md{"No. of rays in file", INTEGER}
+nwaypoints: _md{"No. of waypoints in file", INTEGER}
 scantype: _md{"Scan type", scantype_enum}
 focus_range: _md{"Focus range", INTEGER}
 start_time: _md{"Start time", STRING}
@@ -81,7 +83,12 @@ scantype_enum: STARE
               | VAD_STEPPED
               | VAD_OVERLAPPING
               | USER1_STEPPED
+              | USER1_CSM_OVERLAPPING
               | USER2_STEPPED
+              | USER2_CSM
+              | WIND_PROFILE
+              | WIND_PROFILE_OVERLAPPING
+              | RHI
 
 STARE: "Stare"
 STARE_OVERLAPPING: "Stare - overlapping"
@@ -90,7 +97,12 @@ VAD: "VAD"
 VAD_STEPPED: "VAD - stepped"
 VAD_OVERLAPPING: "VAD - overlapping"
 USER1_STEPPED: "User file 1 - stepped"
+USER1_CSM_OVERLAPPING: "User file 1 - csm - overlapping"
 USER2_STEPPED: "User file 2 - stepped"
+USER2_CSM: "User file 2 - csm"
+WIND_PROFILE: "Wind profile"
+WIND_PROFILE_OVERLAPPING: "Wind profile - overlapping"
+RHI: "RHI"
 
 INTEGER: /[0-9]+/
 DECIMAL: /[-+]?/ INTEGER ("." INTEGER)?
