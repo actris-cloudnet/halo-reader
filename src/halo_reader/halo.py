@@ -22,6 +22,7 @@ class Halo:
     doppler_velocity: Variable
     intensity: Variable
     beta: Variable
+    spectral_width: Variable | None = None
 
     def __str__(self) -> str:
         str_ = ""

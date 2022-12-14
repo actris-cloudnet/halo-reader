@@ -72,11 +72,11 @@ class HeaderTransformer(lark.Transformer):
             )
         }
 
-    def altitude_of_measurement(self, children: list) -> dict:
+    def range_of_measurement(self, children: list) -> dict:
         func, *_ = children
         return {"range_func": func}
 
-    def ALTITUDE_OF_MEASUREMENT(
+    def RANGE_OF_MEASUREMENT(
         self, _: Any
     ) -> Callable[[Variable, Attribute], Variable]:
         return range_func
@@ -130,8 +130,23 @@ class HeaderTransformer(lark.Transformer):
     BETA = lambda self, _: Variable(
         name="beta", units="m-1 sr-1", dimensions=("time", "range")
     )
+    SPECTRAL_WIDTH = lambda self, _: Variable(
+        name="spectral_width", dimensions=("time", "range")
+    )
 
-    SCANTYPE = lambda self, _: ScanType[_.upper()]
+    def scantype_enum(self, children: list[ScanType]) -> ScanType:
+        val, *_ = children
+        return val
+
+    STARE = lambda self, _: ScanType.STARE
+    STARE_OVERLAPPING = lambda self, _: ScanType.STARE_OVERLAPPING
+    SECTORSCAN_STEPPED = lambda self, _: ScanType.SECTORSCAN_STEPPED
+    VAD = lambda self, _: ScanType.VAD
+    VAD_STEPPED = lambda self, _: ScanType.VAD_STEPPED
+    VAD_OVERLAPPING = lambda self, _: ScanType.VAD_OVERLAPPING
+    USER1_STEPPED = lambda self, _: ScanType.USER1_STEPPED
+    USER2_STEPPED = lambda self, _: ScanType.USER2_STEPPED
+
     STRING = lambda self, _: _.value
     INTEGER = lambda self, _: int(_.value)
     DECIMAL = lambda self, _: float(_.value)

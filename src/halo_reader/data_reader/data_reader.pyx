@@ -1,6 +1,7 @@
 import numpy as np
 
 from halo_reader.debug import *
+from halo_reader.exceptions import SpectralWidthTokens, UnexpectedDataTokens
 from halo_reader.variable import Variable
 
 from libc.stdio cimport printf, putc, sscanf
@@ -23,6 +24,14 @@ def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], t
     cdef unsigned long ntime_vars = len(time_vars)
     cdef unsigned long ntime_range_vars = len(time_range_vars)
     cdef unsigned long nprofiles = ntokens // (ntime_vars + ngates * ntime_range_vars)
+    if (ntime_vars + ngates * ntime_range_vars) * nprofiles != ntokens:
+        # Some files might have extra time_range_var column for spectral width
+        nprofiles = ntokens // (ntime_vars + ngates * (ntime_range_vars+1))
+        if (ntime_vars + ngates * (ntime_range_vars+1)) * nprofiles == ntokens:
+            ntime_range_vars += 1
+            time_range_vars.append(Variable(name="spectral_width"))
+        else:
+            raise UnexpectedDataTokens
 
     data_time = np.zeros((nprofiles,ntime_vars), dtype=np.dtype("float"))
     data_time_range = np.zeros((nprofiles,ngates,ntime_range_vars), dtype=np.dtype("float"))

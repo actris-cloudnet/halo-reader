@@ -13,7 +13,7 @@ from halo_reader.metadata import Metadata
 from halo_reader.variable import Variable
 
 from .debug import *
-from .exceptions import HeaderNotFound
+from .exceptions import FileEmpty, HeaderNotFound
 from .transformer import HeaderTransformer
 
 grammar_header = pkgutil.get_data("halo_reader", "grammar_header.lark")
@@ -91,6 +91,9 @@ def _read_header_from_bytes(
 ) -> tuple[int, bytes]:
     header_end = _find_header_end(src)
     if header_end < 0:
+        src.seek(0)
+        if len(src.read()) == 0:
+            raise FileEmpty
         raise HeaderNotFound
     header_bytes = src.read(header_end)
     return header_end, header_bytes
@@ -103,7 +106,7 @@ def _read_data(src: Path | BytesIO, header_end: int) -> bytes:
             return src_buf.read()
     else:
         src.seek(header_end)
-        return src_buf.read()
+        return src.read()
 
 
 def _find_header_end(src: BufferedReader | BytesIO) -> int:
