@@ -64,7 +64,7 @@ def test_warsaw():
 
 def test_xfail_warsaw():
     src = raw_files_xfail.joinpath(
-        "warsaw-2021-10-01-stare_213_20211001_18.hpl"
+        "warsaw-2021-10-01-Stare_213_20211001_18.hpl"
     )
     with pytest.raises(UnexpectedDataTokens):
         read([src], src_bg=[])
