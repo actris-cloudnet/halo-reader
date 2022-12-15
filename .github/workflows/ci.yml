@@ -25,4 +25,4 @@ jobs:
       - name: Check style
         run: flake8 src/
       - name: Run tests
-        run: pytest
+        run: pytest --cov=halo_reader

@@ -32,6 +32,7 @@ dependencies = [
 dev = [
   "mypy",
   "pytest",
+  "pytest-cov",
   "black",
   "flake8",
   "autoflake",
@@ -50,6 +51,7 @@ where = ["src"]
 version = {attr = "halo_reader.__version__"}
 
 [tool.pytest.ini_options]
+addopts = "--cov=halo_reader --cov-report html"
 testpaths = [
     "tests",
 ]
