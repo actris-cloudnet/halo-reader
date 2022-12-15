@@ -31,6 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "mypy",
+  "pytest",
   "black",
   "flake8",
   "autoflake",
@@ -48,6 +49,10 @@ where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "halo_reader.__version__"}
 
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
 
 [tool.mypy]
 mypy_path = "stubs/"
