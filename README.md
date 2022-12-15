@@ -5,7 +5,7 @@ This python package is still in an alpha phase.
 
 Todo:
 
-* [ ] Support for different raw formats
+* [x] Support for different raw formats
 * [ ] Tests
 * [ ] Standard/long netcdf variable names following CF Conventions
 
