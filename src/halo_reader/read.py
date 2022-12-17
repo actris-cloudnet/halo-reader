@@ -7,6 +7,7 @@ import lark
 import numpy as np
 import numpy.typing as npt
 
+from halo_reader.background_reader import read_background
 from halo_reader.data_reader import read_data
 from halo_reader.halo import Halo
 from halo_reader.metadata import Metadata
@@ -28,8 +29,6 @@ def read(
     src: list[Path | BytesIO], src_bg: list[Path | BytesIO]
 ) -> Halo | None:
     halos = []
-    if len(src_bg) > 0:
-        raise NotImplementedError
     for i, s in enumerate(src):
         header_end, header_bytes = _read_header(s)
         metadata, time_vars, time_range_vars, range_func = header_parser.parse(
@@ -45,6 +44,10 @@ def read(
         vars["time"] = _decimaltime2timestamp(vars["time"], metadata)
         vars["range"] = range_func(vars["range"], metadata.gate_range)
         halos.append(Halo(metadata=metadata, **vars))
+    for s_bg in src_bg:
+        bg_bytes = _read_background(s_bg)
+        read_background(bg_bytes)
+    # TODO: include background into halo
     return Halo.merge(halos)
 
 
@@ -84,6 +87,14 @@ def _read_header(src: Path | BytesIO) -> tuple[int, bytes]:
             return _read_header_from_bytes(src_buf)
     else:
         return _read_header_from_bytes(src)
+
+
+def _read_background(src: Path | BytesIO) -> bytes:
+    if isinstance(src, Path):
+        with src.open("rb") as src_buf:
+            return src_buf.read()
+    else:
+        return src.read()
 
 
 def _read_header_from_bytes(

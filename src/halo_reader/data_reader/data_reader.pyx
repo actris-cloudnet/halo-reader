@@ -1,12 +1,10 @@
 import numpy as np
 
-from halo_reader.debug import *
 from halo_reader.exceptions import SpectralWidthTokens, UnexpectedDataTokens
 from halo_reader.variable import Variable
 
-from libc.stdio cimport printf, putc, sscanf
-from libc.stdlib cimport atof, calloc, free, strtof
-from libc.string cimport strcmp, strlen, strspn, strtok
+from libc.stdlib cimport atof
+from libc.string cimport strlen, strspn, strtok
 
 import cython
 
