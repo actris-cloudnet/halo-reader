@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Any, TypeGuard
 
 import numpy as np
@@ -13,6 +14,10 @@ def is_float_list(val: list[Any]) -> TypeGuard[list[float]]:
 
 def is_int_list(val: list[Any]) -> TypeGuard[list[int]]:
     return all(isinstance(x, int) for x in val)
+
+
+def is_bytesio_list(val: list[Any]) -> TypeGuard[list[BytesIO]]:
+    return all(isinstance(x, BytesIO) for x in val)
 
 
 def is_none_list(val: list[Any]) -> TypeGuard[list[None]]:

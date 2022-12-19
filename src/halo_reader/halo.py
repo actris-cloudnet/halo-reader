@@ -58,3 +58,41 @@ class Halo:
             else:
                 raise TypeError
         return Halo(**halo_attrs)
+
+
+@dataclass(slots=True)
+class HaloBg:
+    time: Variable
+    range: Variable
+    background: Variable
+
+    def to_nc(self) -> memoryview:
+        nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
+        self.time.nc_create_dimension(nc)
+        self.range.nc_create_dimension(nc)
+        for attr_name in self.__dataclass_fields__.keys():
+            halobg_attr = getattr(self, attr_name)
+            if halobg_attr is not None:
+                halobg_attr.nc_write(nc)
+        nc_buf = nc.close()
+        if isinstance(nc_buf, memoryview):
+            return nc_buf
+        else:
+            raise TypeError
+
+    @classmethod
+    def merge(cls, halobgs: list[HaloBg]) -> HaloBg | None:
+        if len(halobgs) == 0:
+            return None
+        if len(halobgs) == 1:
+            return halobgs[0]
+        halobg_attrs: dict[str, Any] = {}
+        for attr_name in cls.__dataclass_fields__.keys():
+            halobg_attr_list = [getattr(h, attr_name) for h in halobgs]
+            if Variable.is_variable_list(halobg_attr_list):
+                halobg_attrs[attr_name] = Variable.merge(halobg_attr_list)
+            elif is_none_list(halobg_attr_list):
+                halobg_attrs[attr_name] = None
+            else:
+                raise TypeError
+        return HaloBg(**halobg_attrs)

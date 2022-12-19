@@ -30,6 +30,6 @@ def read_background(data_py: bytes) -> Variable:
     return Variable(
             name = "background",
             data = data,
-            dimensions = ("time_background", "range_background")
+            dimensions = ("time", "range")
 
             )

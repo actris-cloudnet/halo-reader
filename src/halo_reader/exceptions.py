@@ -16,3 +16,7 @@ class MergeError(Exception):
 
 class NetCDFWriteError(Exception):
     pass
+
+
+class BackgroundReadError(Exception):
+    pass

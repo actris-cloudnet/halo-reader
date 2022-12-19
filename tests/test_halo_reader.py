@@ -16,7 +16,7 @@ def test_eriswil():
     src = raw_files_pass.joinpath(
         "eriswil-2022-12-14-Stare_91_20221214_11.hpl"
     )
-    halo = read([src], src_bg=[])
+    halo = read([src])
     time = datetime.datetime.utcfromtimestamp(halo.time.data[0]).strftime(
         "%Y-%m-%d %H:%M:%S.%f"
     )
@@ -34,7 +34,7 @@ def test_soverato():
     src = raw_files_pass.joinpath(
         "soverato-2021-10-01-VAD_194_20210624_170110.hpl"
     )
-    halo = read([src], src_bg=[])
+    halo = read([src])
     assert halo.time.data.shape == (2,)
     assert halo.azimuth.data.shape == (2,)
     assert halo.elevation.data.shape == (2,)
@@ -50,7 +50,7 @@ def test_warsaw():
     src = raw_files_pass.joinpath(
         "warsaw-2022-12-13-Stare_213_20221213_04.hpl"
     )
-    halo = read([src], src_bg=[])
+    halo = read([src])
     assert halo.time.data.shape == (2,)
     assert halo.azimuth.data.shape == (2,)
     assert halo.elevation.data.shape == (2,)
@@ -67,10 +67,10 @@ def test_xfail_warsaw():
         "warsaw-2021-10-01-Stare_213_20211001_18.hpl"
     )
     with pytest.raises(UnexpectedDataTokens):
-        read([src], src_bg=[])
+        read([src])
 
 
 def test_xfail_empty():
     src = raw_files_xfail.joinpath("empty.hpl")
     with pytest.raises(FileEmpty):
-        read([src], src_bg=[])
+        read([src])

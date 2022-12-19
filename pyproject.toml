@@ -42,8 +42,8 @@ dev = [
 ]
 
 [project.scripts]
-halodump = "halo_reader.cli:halo_dump"
 halo2nc = "halo_reader.cli:halo2nc"
+halobg2nc = "halo_reader.cli:halobg2nc"
 
 [tool.setuptools.packages.find]
 where = ["src"]

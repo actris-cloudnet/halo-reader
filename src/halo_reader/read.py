@@ -1,4 +1,6 @@
 import pkgutil
+import re
+from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
 from typing import Any
@@ -9,8 +11,10 @@ import numpy.typing as npt
 
 from halo_reader.background_reader import read_background
 from halo_reader.data_reader import read_data
-from halo_reader.halo import Halo
+from halo_reader.exceptions import BackgroundReadError
+from halo_reader.halo import Halo, HaloBg
 from halo_reader.metadata import Metadata
+from halo_reader.type_guards import is_bytesio_list
 from halo_reader.variable import Variable
 
 from .debug import *
@@ -25,9 +29,7 @@ header_parser = lark.Lark(
 )
 
 
-def read(
-    src: list[Path | BytesIO], src_bg: list[Path | BytesIO]
-) -> Halo | None:
+def read(src: list[Path | BytesIO]) -> Halo | None:
     halos = []
     for i, s in enumerate(src):
         header_end, header_bytes = _read_header(s)
@@ -43,6 +45,65 @@ def read(
         vars["range"] = range_func(vars["range"], metadata.gate_range)
         halos.append(Halo(metadata=metadata, **vars))
     return Halo.merge(halos)
+
+
+def read_bg(
+    src: list[Path | BytesIO], filenames: list[str] | None = None
+) -> HaloBg | None:
+    halobgs = []
+    for s, fname in _bg_src_fname_list(src, filenames):
+        bg_bytes = _read_background(s)
+        background = read_background(bg_bytes)
+        if not isinstance(background.data, np.ndarray):
+            raise BackgroundReadError
+        time = _bgfname2timevar(fname)
+        range_ = Variable(
+            name="range",
+            units="index",
+            dimensions=("range",),
+            data=np.arange(background.data.shape[1]),
+        )
+        halobgs.append(HaloBg(time=time, background=background, range=range_))
+    return HaloBg.merge(halobgs)
+
+
+def _bgfname2timevar(fname: str) -> Variable:
+    m = re.match(
+        r"^Background_(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.txt$", fname
+    )
+    if m:
+        dt = datetime(
+            day=int(m.group(1)),
+            month=int(m.group(2)),
+            year=int("20" + m.group(3)),
+            hour=int(m.group(4)),
+            minute=int(m.group(5)),
+            second=int(m.group(6)),
+            tzinfo=timezone.utc,
+        )
+        return Variable(
+            name="time",
+            units="unix time",
+            dimensions=("time",),
+            data=np.array([dt.timestamp()]),
+        )
+
+    else:
+        raise BackgroundReadError("Unexpected time format in filename")
+
+
+def _bg_src_fname_list(
+    src: list[Path | BytesIO], filenames: list[str] | None
+) -> list[tuple[Path | BytesIO, str]]:
+    src_fname_list: list[tuple[Path | BytesIO, str]] = []
+    for i, s in enumerate(src):
+        if isinstance(s, BytesIO):
+            if filenames is None or len(filenames) != len(src):
+                raise BackgroundReadError
+            src_fname_list.append((s, filenames[i]))
+        else:
+            src_fname_list.append((s, s.name))
+    return src_fname_list
 
 
 def _decimaltime2timestamp(time: Variable, md: Metadata) -> Variable:
