@@ -17,5 +17,5 @@ class Lark:
         Metadata,
         list[Variable],
         list[Variable],
-        Callable[[Variable, Attribute], Variable],
+        Callable[[Variable, Variable], Variable],
     ]: ...

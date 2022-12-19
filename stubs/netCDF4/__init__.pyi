@@ -19,6 +19,7 @@ class Dataset:
     description: str
     units: str
     name: str
+    parent: Dataset | None
 
     def __init__(
         self,

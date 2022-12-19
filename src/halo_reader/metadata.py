@@ -1,28 +1,31 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, TypeGuard
 
 import netCDF4
 
 from halo_reader.debug import *
+from halo_reader.type_guards import is_none_list
 
 from .attribute import Attribute
+from .variable import Variable
 
 
 @dataclass(slots=True)
 class Metadata:
     filename: Attribute
     system_id: Attribute
-    ngates: Attribute
-    gate_range: Attribute
-    gate_length: Attribute
-    npulses: Attribute
+    ngates: Variable
+    gate_range: Variable
+    gate_length: Variable
+    npulses: Variable
     scantype: Attribute
-    focus_range: Attribute
-    start_time: Attribute
-    resolution: Attribute
-    nrays: Attribute | None = None
-    nwaypoints: Attribute | None = None
+    focus_range: Variable
+    start_time: Variable
+    resolution: Variable
+    nrays: Variable | None = None
+    nwaypoints: Variable | None = None
 
     def nc_write(self, nc: netCDF4.Dataset) -> None:
         nc_meta = nc.createGroup("metadata")
@@ -31,30 +34,28 @@ class Metadata:
             if metadata_attr is not None:
                 metadata_attr.nc_write(nc_meta)
 
-    def __str__(self) -> str:
-        str_ = ""
-        for attr_name in self.__dataclass_fields__.keys():
-            metadata_attr = getattr(self, attr_name)
-            str_ += f"{metadata_attr}\n"
-        return str_
-
-    def __repr__(self) -> str:
-        return str(self)
-
     @classmethod
     def merge(cls, metadata_list: list[Metadata]) -> Metadata | None:
         if len(metadata_list) == 0:
             return None
         if len(metadata_list) == 1:
             return metadata_list[0]
-        metadata_attrs = {}
+        metadata_attrs: dict[str, Any] = {}
         for attr_name in cls.__dataclass_fields__.keys():
             metadata_attr_list = [
                 getattr(md, attr_name) for md in metadata_list
             ]
-            metadata_attr_class = metadata_attr_list[0].__class__
-            metadata_attr_merged = metadata_attr_class.merge(
-                metadata_attr_list
-            )
-            metadata_attrs[attr_name] = metadata_attr_merged
+
+            if Attribute.is_attribute_list(metadata_attr_list):
+                metadata_attrs[attr_name] = Attribute.merge(metadata_attr_list)
+            elif Variable.is_variable_list(metadata_attr_list):
+                metadata_attrs[attr_name] = Variable.merge(metadata_attr_list)
+            elif is_none_list(metadata_attr_list):
+                metadata_attrs[attr_name] = None
+            else:
+                raise TypeError
         return Metadata(**metadata_attrs)
+
+    @classmethod
+    def is_metadata_list(cls, val: list[Any]) -> TypeGuard[list[Metadata]]:
+        return all(isinstance(x, Metadata) for x in val)

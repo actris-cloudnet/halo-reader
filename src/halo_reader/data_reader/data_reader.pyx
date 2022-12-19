@@ -1,6 +1,6 @@
 import numpy as np
 
-from halo_reader.exceptions import SpectralWidthTokens, UnexpectedDataTokens
+from halo_reader.exceptions import UnexpectedDataTokens
 from halo_reader.variable import Variable
 
 from libc.stdlib cimport atof

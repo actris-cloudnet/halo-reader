@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, TypeGuard
 
 import netCDF4
 import numpy.typing as npt
 
 from halo_reader.debug import *
 from halo_reader.metadata import Metadata
+from halo_reader.type_guards import is_none_list
 from halo_reader.variable import Variable
 
 
@@ -23,16 +25,6 @@ class Halo:
     intensity: Variable
     beta: Variable
     spectral_width: Variable | None = None
-
-    def __str__(self) -> str:
-        str_ = ""
-        for attr_name in self.__dataclass_fields__.keys():
-            halo_field = getattr(self, attr_name)
-            str_ += f"{halo_field}\n"
-        return str_
-
-    def __repr__(self) -> str:
-        return str(self)
 
     def to_nc(self) -> memoryview:
         nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
@@ -54,10 +46,15 @@ class Halo:
             return None
         if len(halos) == 1:
             return halos[0]
-        halo_attrs = {}
+        halo_attrs: dict[str, Any] = {}
         for attr_name in cls.__dataclass_fields__.keys():
             halo_attr_list = [getattr(h, attr_name) for h in halos]
-            halo_attr_class = halo_attr_list[0].__class__
-            halo_attr_merged = halo_attr_class.merge(halo_attr_list)
-            halo_attrs[attr_name] = halo_attr_merged
+            if Metadata.is_metadata_list(halo_attr_list):
+                halo_attrs[attr_name] = Metadata.merge(halo_attr_list)
+            elif Variable.is_variable_list(halo_attr_list):
+                halo_attrs[attr_name] = Variable.merge(halo_attr_list)
+            elif is_none_list(halo_attr_list):
+                halo_attrs[attr_name] = None
+            else:
+                raise TypeError
         return Halo(**halo_attrs)

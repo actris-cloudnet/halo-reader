@@ -14,40 +14,20 @@ from .variable import Variable
 
 
 class HeaderTransformer(lark.Transformer):
-    def __init__(self) -> None:
-        super(HeaderTransformer, self).__init__()
-        keyval_attrs = [
-            "filename",
-            "system_id",
-            "ngates",
-            "npulses",
-            "nrays",
-            "nwaypoints",
-            "scantype",
-            "focus_range",
-        ]
-        for key in keyval_attrs:
-            setattr(self, key, keyvalfunc(key))
-        unit_attrs = [
-            ("gate_range", "m"),
-            ("gate_length", "pts"),
-            ("resolution", "m/s"),
-        ]
-        for key, unit in unit_attrs:
-            setattr(self, key, unitfunc(key, unit))
-
     def header(
         self, children: list
     ) -> tuple[
         Metadata,
         list[Variable],
         list[Variable],
-        Callable[[Variable, Attribute], Variable],
+        Callable[[Variable, Variable], Variable],
     ]:
         _header = {}
         for c in children:
             if isinstance(c, dict):
                 _header.update(c)
+            elif isinstance(c, (Attribute, Variable)):
+                _header[c.name] = c
             else:
                 raise TypeError
         time_vars = _header.pop("time_vars")
@@ -55,6 +35,50 @@ class HeaderTransformer(lark.Transformer):
         range_func = _header.pop("range_func")
         metadata = Metadata(**_header)
         return metadata, time_vars, time_range_vars, range_func
+
+    def filename(self, children: list) -> Attribute:
+        val, *_ = children
+        return Attribute(name="filename", value=val)
+
+    def system_id(self, children: list) -> Attribute:
+        val, *_ = children
+        return Attribute(name="system_id", value=val)
+
+    def ngates(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="ngates", data=val)
+
+    def npulses(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="npulses", data=val)
+
+    def nrays(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="nrays", data=val)
+
+    def nwaypoints(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="nwaypoints", data=val)
+
+    def scantype(self, children: list) -> Attribute:
+        val, *_ = children
+        return Attribute(name="scantype", value=val)
+
+    def focus_range(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="focus_range", data=val)
+
+    def gate_range(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="gate_range", data=val, units="m")
+
+    def gate_length(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="gate_length", data=val, units="pts")
+
+    def resolution(self, children: list) -> Variable:
+        val, *_ = children
+        return Variable(name="resolution", data=val, units="m/s")
 
     def start_time(self, children: list) -> dict:
         time_str, *_ = children
@@ -68,8 +92,11 @@ class HeaderTransformer(lark.Transformer):
                 f"Parse for fmt {time_str} not implemented yet"
             )
         return {
-            "start_time": Attribute(
-                name="start_time", units="unix time", value=dt.timestamp()
+            "start_time": Variable(
+                name="start_time",
+                units="unix time",
+                dimensions=("start_time",),
+                data=np.array([dt.timestamp()]),
             )
         }
 
@@ -79,7 +106,7 @@ class HeaderTransformer(lark.Transformer):
 
     def RANGE_OF_MEASUREMENT(
         self, _: Any
-    ) -> Callable[[Variable, Attribute], Variable]:
+    ) -> Callable[[Variable, Variable], Variable]:
         return range_func
 
     time_dimension_variables = lambda self, vars: {"time_vars": vars}
@@ -160,28 +187,12 @@ class HeaderTransformer(lark.Transformer):
     DECIMAL = lambda self, _: float(_.value)
 
 
-def keyvalfunc(key: str) -> Callable[[list], dict]:
-    def _func(children: list) -> dict[str, Attribute]:
-        val, *_ = children
-        return {key: Attribute(name=key, value=val)}
-
-    return _func
-
-
-def unitfunc(key: str, units: str) -> Callable[[list], dict]:
-    def _func(children: list) -> dict[str, Attribute]:
-        val, *_ = children
-        return {key: Attribute(name=key, value=val, units=units)}
-
-    return _func
-
-
-def range_func(range: Variable, gate_range: Attribute) -> Variable:
+def range_func(range: Variable, gate_range: Variable) -> Variable:
     if not isinstance(range.data, np.ndarray) or not isinstance(
-        gate_range.value, float
+        gate_range.data, float
     ):
         raise TypeError
-    range_ = (range.data[0, :] + 0.5) * gate_range.value
+    range_ = (range.data[0, :] + 0.5) * gate_range.data
     if not isinstance(range_, np.ndarray):
         raise TypeError
     return Variable(

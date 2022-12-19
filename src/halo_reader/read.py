@@ -35,19 +35,13 @@ def read(
             header_bytes.decode()
         )
         data_bytes = _read_data(s, header_end)
-        if not isinstance(metadata.ngates.value, int):
+        if not isinstance(metadata.ngates.data, int):
             raise TypeError
-        read_data(
-            data_bytes, metadata.ngates.value, time_vars, time_range_vars
-        )
+        read_data(data_bytes, metadata.ngates.data, time_vars, time_range_vars)
         vars = {var.name: var for var in time_vars + time_range_vars}
         vars["time"] = _decimaltime2timestamp(vars["time"], metadata)
         vars["range"] = range_func(vars["range"], metadata.gate_range)
         halos.append(Halo(metadata=metadata, **vars))
-    for s_bg in src_bg:
-        bg_bytes = _read_background(s_bg)
-        read_background(bg_bytes)
-    # TODO: include background into halo
     return Halo.merge(halos)
 
 
@@ -58,9 +52,13 @@ def _decimaltime2timestamp(time: Variable, md: Metadata) -> Variable:
         raise NotImplementedError
     day_in_seconds = 86400
     hour_in_seconds = 3600
-    if not isinstance(md.start_time.value, float):
+    if (
+        not isinstance(md.start_time.data, np.ndarray)
+        or np.ndim(md.start_time.data) != 1
+        or md.start_time.data.size != 1
+    ):
         raise TypeError
-    t_start = np.floor(md.start_time.value / day_in_seconds) * day_in_seconds
+    t_start = np.floor(md.start_time.data / day_in_seconds) * day_in_seconds
     if not isinstance(time.data, np.ndarray):
         raise TypeError
     time_ = t_start + hour_in_seconds * time.data

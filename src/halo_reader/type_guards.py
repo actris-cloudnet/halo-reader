@@ -15,6 +15,10 @@ def is_int_list(val: list[Any]) -> TypeGuard[list[int]]:
     return all(isinstance(x, int) for x in val)
 
 
+def is_none_list(val: list[Any]) -> TypeGuard[list[None]]:
+    return all(x is None for x in val)
+
+
 def is_float_or_float_list(
     val: Any | list[Any],
 ) -> TypeGuard[float | list[float]]:

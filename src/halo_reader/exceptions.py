@@ -10,5 +10,9 @@ class UnexpectedDataTokens(Exception):
     pass
 
 
-class SpectralWidthTokens(Exception):
+class MergeError(Exception):
+    pass
+
+
+class NetCDFWriteError(Exception):
     pass
