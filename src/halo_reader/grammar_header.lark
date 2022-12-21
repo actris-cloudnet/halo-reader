@@ -1,6 +1,6 @@
 ?start: header
 
-header: _row+ _time_dimension_lines _time_range_dimension_lines _end_of_header
+header: _row+ _time_dimension_lines _time_range_dimension_lines (_end_of_header | end_of_header_with_instrument_spectral_width)
 
 _row: filename
       | system_id
@@ -70,11 +70,10 @@ _precision: _PRECISION_FMT ("," _PRECISION_MULT)?
 _PRECISION_FMT: /[ief]\d+(\.\d+)?/
 _PRECISION_MULT: INTEGER "x"
 
-_end_of_header: _END_OF_HEADER_FMT1
-                | _END_OF_HEADER_FMT2
+_end_of_header: _END_OF_HEADER_SIMPLE
 
-_END_OF_HEADER_FMT1: "****" _ENDL
-_END_OF_HEADER_FMT2: "**** Instrument spectral width = " DECIMAL _ENDL
+_END_OF_HEADER_SIMPLE: "****" _ENDL
+end_of_header_with_instrument_spectral_width: "**** Instrument spectral width = " DECIMAL _ENDL
 
 scantype_enum: STARE
               | STARE_OVERLAPPING

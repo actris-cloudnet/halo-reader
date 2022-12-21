@@ -80,6 +80,12 @@ class HeaderTransformer(lark.Transformer):
         val, *_ = children
         return Variable(name="resolution", data=val, units="m/s")
 
+    def end_of_header_with_instrument_spectral_width(
+        self, children: list
+    ) -> Variable:
+        val, *_ = children
+        return Variable(name="instrument_spectral_width", data=val)
+
     def start_time(self, children: list) -> dict:
         time_str, *_ = children
         time_fmt1 = re.match(

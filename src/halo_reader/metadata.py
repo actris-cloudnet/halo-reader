@@ -26,6 +26,7 @@ class Metadata:
     resolution: Variable
     nrays: Variable | None = None
     nwaypoints: Variable | None = None
+    instrument_spectral_width: Variable | None = None
 
     def nc_write(self, nc: netCDF4.Dataset) -> None:
         nc_meta = nc.createGroup("metadata")
