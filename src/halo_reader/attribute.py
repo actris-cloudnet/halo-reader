@@ -5,7 +5,6 @@ from typing import Any, TypeAlias, TypeGuard
 
 import netCDF4
 
-from halo_reader.debug import *
 from halo_reader.scantype import ScanType
 from halo_reader.type_guards import (
     is_float_list,

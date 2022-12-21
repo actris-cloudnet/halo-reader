@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from halo_reader.debug import *
-
 
 def two_column_format(key: str, vals: list, left_width: int) -> str:
     if len(vals) == 0:

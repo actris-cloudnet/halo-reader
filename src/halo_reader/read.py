@@ -17,7 +17,6 @@ from halo_reader.metadata import Metadata
 from halo_reader.type_guards import is_bytesio_list
 from halo_reader.variable import Variable
 
-from .debug import *
 from .exceptions import FileEmpty, HeaderNotFound
 from .transformer import HeaderTransformer
 
@@ -89,7 +88,9 @@ def _bgfname2timevar(fname: str) -> Variable:
         )
 
     else:
-        raise BackgroundReadError("Unexpected time format in filename")
+        raise BackgroundReadError(
+            f"Unexpected time format in filename: {fname}"
+        )
 
 
 def _bg_src_fname_list(

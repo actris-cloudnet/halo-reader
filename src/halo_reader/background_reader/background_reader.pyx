@@ -1,6 +1,5 @@
 import numpy as np
 
-from halo_reader.debug import *
 from halo_reader.variable import Variable
 
 from libc.stdlib cimport atof

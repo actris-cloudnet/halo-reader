@@ -7,7 +7,6 @@ import netCDF4
 import numpy as np
 import numpy.typing as npt
 
-from halo_reader.debug import *
 from halo_reader.exceptions import MergeError, NetCDFWriteError
 from halo_reader.type_guards import is_float_list, is_int_list, is_ndarray_list
 from halo_reader.utils import indent_str
@@ -132,7 +131,11 @@ def _scalars_equal(scalars: list[float] | list[int]) -> bool:
 
 def _reduce_range(vars: list[Variable]) -> np.ndarray:
     range_list = [v.data for v in vars]
-    if is_ndarray_list(range_list) and _arrays_close(range_list):
+    if not is_ndarray_list(range_list):
+        raise TypeError
+    if not _array_shapes_equal(range_list):
+        raise MergeError("Cannot merge, range shapes unequal")
+    if _arrays_close(range_list):
         return range_list[0]
     else:
         raise MergeError("Cannot merge unequal ranges")
@@ -174,3 +177,10 @@ def _arrays_close(array_list: list[np.ndarray]) -> bool:
         return True
     first_arr = array_list[0]
     return all(np.allclose(first_arr, arr) for arr in array_list)
+
+
+def _array_shapes_equal(array_list: list[np.ndarray]) -> bool:
+    if len(array_list) < 2:
+        return True
+    first_arr = array_list[0]
+    return all(first_arr.shape == arr.shape for arr in array_list)

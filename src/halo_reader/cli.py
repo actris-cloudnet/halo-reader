@@ -2,7 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from halo_reader.debug import *
 from halo_reader.read import read, read_bg
 
 

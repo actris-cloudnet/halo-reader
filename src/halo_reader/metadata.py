@@ -5,7 +5,6 @@ from typing import Any, TypeGuard
 
 import netCDF4
 
-from halo_reader.debug import *
 from halo_reader.type_guards import is_none_list
 
 from .attribute import Attribute

@@ -6,7 +6,6 @@ from typing import Any, TypeGuard
 import netCDF4
 import numpy.typing as npt
 
-from halo_reader.debug import *
 from halo_reader.metadata import Metadata
 from halo_reader.type_guards import is_none_list
 from halo_reader.variable import Variable

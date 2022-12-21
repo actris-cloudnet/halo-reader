@@ -7,7 +7,6 @@ import numpy as np
 import numpy.typing as npt
 
 from .attribute import Attribute
-from .debug import *
 from .metadata import Metadata
 from .scantype import ScanType
 from .variable import Variable
