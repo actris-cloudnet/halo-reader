@@ -1,1 +1,2 @@
 include src/halo_reader/grammar_header.lark
+global-include *.pyx
