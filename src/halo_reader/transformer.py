@@ -1,10 +1,10 @@
+# pylint: disable=C0103
 import re
 from datetime import datetime, timezone
 from typing import Any, Callable
 
 import lark
 import numpy as np
-import numpy.typing as npt
 
 from .attribute import Attribute
 from .metadata import Metadata
@@ -22,18 +22,18 @@ class HeaderTransformer(lark.Transformer):
         Callable[[Variable, Variable], Variable],
     ]:
         _header = {}
-        for c in children:
-            if isinstance(c, dict):
-                _header.update(c)
-            elif isinstance(c, (Attribute, Variable)):
-                _header[c.name] = c
+        for child in children:
+            if isinstance(child, dict):
+                _header.update(child)
+            elif isinstance(child, (Attribute, Variable)):
+                _header[child.name] = child
             else:
                 raise TypeError
         time_vars = _header.pop("time_vars")
         time_range_vars = _header.pop("time_range_vars")
-        range_func = _header.pop("range_func")
+        range_func_ = _header.pop("range_func")
         metadata = Metadata(**_header)
-        return metadata, time_vars, time_range_vars, range_func
+        return metadata, time_vars, time_range_vars, range_func_
 
     def filename(self, children: list) -> Attribute:
         val, *_ = children
@@ -87,12 +87,10 @@ class HeaderTransformer(lark.Transformer):
 
     def start_time(self, children: list) -> dict:
         time_str, *_ = children
-        time_fmt1 = re.match(
+        match_ = re.match(
             r"(\d{4})(\d{2})(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{2})", time_str
         )
-        if time_fmt1:
-            dt = _time_fmt1_to_datetime(time_fmt1)
-        else:
+        if match_ is None:
             raise NotImplementedError(
                 f"Parse for fmt {time_str} not implemented yet"
             )
@@ -101,7 +99,20 @@ class HeaderTransformer(lark.Transformer):
                 name="start_time",
                 units="unix time",
                 dimensions=("start_time",),
-                data=np.array([dt.timestamp()]),
+                data=np.array(
+                    [
+                        datetime(
+                            year=int(match_.group(1)),
+                            month=int(match_.group(2)),
+                            day=int(match_.group(3)),
+                            hour=int(match_.group(4)),
+                            minute=int(match_.group(5)),
+                            second=int(match_.group(6)),
+                            microsecond=int(match_.group(7).ljust(6, "0")),
+                            tzinfo=timezone.utc,
+                        ).timestamp()
+                    ]
+                ),
             )
         }
 
@@ -192,12 +203,12 @@ class HeaderTransformer(lark.Transformer):
     DECIMAL = lambda self, _: float(_.value)
 
 
-def range_func(range: Variable, gate_range: Variable) -> Variable:
-    if not isinstance(range.data, np.ndarray) or not isinstance(
+def range_func(range_var: Variable, gate_range: Variable) -> Variable:
+    if not isinstance(range_var.data, np.ndarray) or not isinstance(
         gate_range.data, float
     ):
         raise TypeError
-    range_ = (range.data[0, :] + 0.5) * gate_range.data
+    range_ = (range_var.data[0, :] + 0.5) * gate_range.data
     if not isinstance(range_, np.ndarray):
         raise TypeError
     return Variable(
@@ -205,17 +216,4 @@ def range_func(range: Variable, gate_range: Variable) -> Variable:
         dimensions=("range",),
         units=gate_range.units,
         data=range_,
-    )
-
-
-def _time_fmt1_to_datetime(m: re.Match) -> datetime:
-    return datetime(
-        year=int(m.group(1)),
-        month=int(m.group(2)),
-        day=int(m.group(3)),
-        hour=int(m.group(4)),
-        minute=int(m.group(5)),
-        second=int(m.group(6)),
-        microsecond=int(m.group(7).ljust(6, "0")),
-        tzinfo=timezone.utc,
     )

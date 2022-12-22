@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from halo_reader.debug import *
 from halo_reader.exceptions import FileEmpty, UnexpectedDataTokens
 from halo_reader.read import read, read_bg
 

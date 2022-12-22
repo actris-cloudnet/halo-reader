@@ -1,4 +1,4 @@
-name: Types, style and tests
+name: Tests
 
 on: [push]
 
@@ -22,7 +22,9 @@ jobs:
           pip install .[dev]
       - name: Check types
         run: mypy src/
-      - name: Check style
+      - name: Style flake8
         run: flake8 src/
+      - name: Style pylint
+        run: pylint src/
       - name: Run tests
         run: pytest --cov=halo_reader

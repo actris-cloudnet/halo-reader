@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypeAlias, TypeGuard
+from typing import Any, TypeGuard
 
 import netCDF4
 
 from halo_reader.scantype import ScanType
-from halo_reader.type_guards import (
-    is_float_list,
-    is_float_or_float_list,
-    is_str_list,
-    is_str_or_str_list,
-)
-from halo_reader.utils import timestamp2str, two_column_format
+from halo_reader.type_guards import is_str_list
 
 
 @dataclass(slots=True)
@@ -45,24 +39,21 @@ class Attribute:
 
         if names_eq and values_eq:
             return attributes[0]
-        elif names_eq and first_attr.name == "filename":
+        if names_eq and first_attr.name == "filename":
             return Attribute(
                 name=first_attr.name, value=_list_values(attributes)
             )
-        else:
-            raise ValueError(f"Cannot merge attribute {attributes[0].name}")
+        raise ValueError(f"Cannot merge attribute {attributes[0].name}")
 
 
 def _list_values(attributes: list[Attribute]) -> list[str]:
     value_list = [a.value for a in attributes]
     if is_str_list(value_list):
         return value_list
-    else:
-        raise TypeError
+    raise TypeError
 
 
 def _str_or_str_list2str(val: str | list[str]) -> str:
     if isinstance(val, list):
         return "\n".join(val)
-    else:
-        return val
+    return val

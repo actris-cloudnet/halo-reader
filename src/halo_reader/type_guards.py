@@ -29,8 +29,7 @@ def is_float_or_float_list(
 ) -> TypeGuard[float | list[float]]:
     if isinstance(val, list):
         return all(isinstance(x, float) for x in val)
-    else:
-        return isinstance(val, float)
+    return isinstance(val, float)
 
 
 def is_str_or_str_list(
@@ -38,8 +37,7 @@ def is_str_or_str_list(
 ) -> TypeGuard[str | list[str]]:
     if isinstance(val, list):
         return all(isinstance(x, str) for x in val)
-    else:
-        return isinstance(val, str)
+    return isinstance(val, str)
 
 
 def is_ndarray_list(val: list[Any]) -> TypeGuard[list[np.ndarray]]:

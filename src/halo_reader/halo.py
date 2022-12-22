@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, TypeGuard
+from typing import Any
 
 import netCDF4
-import numpy.typing as npt
 
 from halo_reader.metadata import Metadata
 from halo_reader.type_guards import is_none_list
@@ -36,8 +35,7 @@ class Halo:
         nc_buf = nc.close()
         if isinstance(nc_buf, memoryview):
             return nc_buf
-        else:
-            raise TypeError
+        raise TypeError
 
     @classmethod
     def merge(cls, halos: list[Halo]) -> Halo | None:
@@ -76,8 +74,7 @@ class HaloBg:
         nc_buf = nc.close()
         if isinstance(nc_buf, memoryview):
             return nc_buf
-        else:
-            raise TypeError
+        raise TypeError
 
     @classmethod
     def merge(cls, halobgs: list[HaloBg]) -> HaloBg | None:

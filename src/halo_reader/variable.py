@@ -9,7 +9,6 @@ import numpy.typing as npt
 
 from halo_reader.exceptions import MergeError, NetCDFWriteError
 from halo_reader.type_guards import is_float_list, is_int_list, is_ndarray_list
-from halo_reader.utils import indent_str
 
 DataType: TypeAlias = npt.NDArray | int | float | None
 
@@ -45,21 +44,21 @@ class Variable:
         nc_var[:] = self.data if self.data is not None else []
 
     @classmethod
-    def merge(cls, vars: list[Variable]) -> Variable | None:
-        _check_merge(vars)
+    def merge(cls, vars_: list[Variable]) -> Variable | None:
+        _check_merge(vars_)
 
-        if len(vars) == 0:
+        if len(vars_) == 0:
             return None
-        if len(vars) == 1:
-            return vars[0]
-        first_var = vars[0]
+        if len(vars_) == 1:
+            return vars_[0]
+        first_var = vars_[0]
 
         if first_var.name == "range":
-            data: DataType = _reduce_range(vars)
+            data: DataType = _reduce_range(vars_)
         elif first_var.dimensions is None:
-            data = _get_scalar_data(vars)
+            data = _get_scalar_data(vars_)
         else:
-            data = _concatenate_along_first_dimension(vars)
+            data = _concatenate_along_first_dimension(vars_)
         return Variable(
             name=first_var.name,
             standard_name=first_var.standard_name,
@@ -73,52 +72,48 @@ class Variable:
 def _dimension_exists(nc: netCDF4.Dataset | None, dim: str) -> bool:
     if nc is None:
         return False
-    elif dim in nc.dimensions:
+    if dim in nc.dimensions:
         return True
-    else:
-        return _dimension_exists(nc.parent, dim)
+    return _dimension_exists(nc.parent, dim)
 
 
 def _choose_nc_dtype(var: Variable) -> str:
     if var.data is None:
         return "f4"
-    elif isinstance(var.data, float):
+    if isinstance(var.data, float):
         return "f4"
-    elif isinstance(var.data, int):
+    if isinstance(var.data, int):
         return "i4"
-    elif isinstance(var.data, np.ndarray):
+    if isinstance(var.data, np.ndarray):
         if var.data.dtype.kind == "f":
             return "f4"
         if var.data.dtype.kind == "i":
             return "i4"
-        else:
-            raise NetCDFWriteError
-    else:
         raise NetCDFWriteError
+    raise NetCDFWriteError
 
 
-def _check_merge(vars: list[Variable]) -> None:
-    if len(vars) < 2:
+def _check_merge(vars_: list[Variable]) -> None:
+    if len(vars_) < 2:
         return
-    first_var = vars[0]
-    if not all(first_var.name == v.name for v in vars[1:]):
+    first_var = vars_[0]
+    if not all(first_var.name == v.name for v in vars_[1:]):
         raise MergeError
-    elif not all(first_var.standard_name == v.standard_name for v in vars[1:]):
+    if not all(first_var.standard_name == v.standard_name for v in vars_[1:]):
         raise MergeError
-    elif not all(first_var.long_name == v.long_name for v in vars[1:]):
+    if not all(first_var.long_name == v.long_name for v in vars_[1:]):
         raise MergeError
-    elif not all(first_var.dimensions == v.dimensions for v in vars[1:]):
+    if not all(first_var.dimensions == v.dimensions for v in vars_[1:]):
         raise MergeError
 
 
-def _get_scalar_data(vars: list[Variable]) -> float | int:
-    scalars = [v.data for v in vars]
+def _get_scalar_data(vars_: list[Variable]) -> float | int:
+    scalars = [v.data for v in vars_]
     if not (is_float_list(scalars) or is_int_list(scalars)):
         raise TypeError
     if _scalars_equal(scalars):
         return scalars[0]
-    else:
-        raise MergeError("Cannot merge unequal dimensionless scalars")
+    raise MergeError("Cannot merge unequal dimensionless scalars")
 
 
 def _scalars_equal(scalars: list[float] | list[int]) -> bool:
@@ -129,38 +124,36 @@ def _scalars_equal(scalars: list[float] | list[int]) -> bool:
     return all(np.isclose(s, scalars[0]) for s in scalars[1:])
 
 
-def _reduce_range(vars: list[Variable]) -> np.ndarray:
-    range_list = [v.data for v in vars]
+def _reduce_range(vars_: list[Variable]) -> np.ndarray:
+    range_list = [v.data for v in vars_]
     if not is_ndarray_list(range_list):
         raise TypeError
     if not _array_shapes_equal(range_list):
         raise MergeError("Cannot merge, range shapes unequal")
     if _arrays_close(range_list):
         return range_list[0]
-    else:
-        raise MergeError("Cannot merge unequal ranges")
+    raise MergeError("Cannot merge unequal ranges")
 
 
-def _concatenate_along_first_dimension(vars: list[Variable]) -> np.ndarray:
-    _check_concat(vars)
-    data_list = [v.data for v in vars]
+def _concatenate_along_first_dimension(vars_: list[Variable]) -> np.ndarray:
+    _check_concat(vars_)
+    data_list = [v.data for v in vars_]
     if is_ndarray_list(data_list):
         return np.concatenate(data_list)
-    else:
-        raise TypeError
+    raise TypeError
 
 
-def _check_concat(vars: list[Variable]) -> None:
-    if len(vars) < 2:
+def _check_concat(vars_: list[Variable]) -> None:
+    if len(vars_) < 2:
         return
-    first_var = vars[0]
+    first_var = vars_[0]
     if not isinstance(first_var.data, np.ndarray):
         raise TypeError
     if isinstance(first_var.dimensions, tuple):
         ndim = len(first_var.dimensions)
     else:
         raise TypeError
-    data_list = [v.data for v in vars]
+    data_list = [v.data for v in vars_]
     if not is_ndarray_list(data_list):
         raise MergeError
     if ndim < 1:

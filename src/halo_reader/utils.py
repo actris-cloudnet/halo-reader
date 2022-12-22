@@ -18,10 +18,9 @@ def indent_str(str_: str, width: int) -> str:
 
 
 def timestamp2str(stamp: float | list[float]) -> str | list[str]:
-    def _timestamp2str(t: float) -> str:
-        return datetime.utcfromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+    def _timestamp2str(stamp: float) -> str:
+        return datetime.utcfromtimestamp(stamp).strftime("%Y-%m-%d %H:%M:%S")
 
     if isinstance(stamp, list):
         return [_timestamp2str(s) for s in stamp]
-    else:
-        return _timestamp2str(stamp)
+    return _timestamp2str(stamp)

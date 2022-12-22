@@ -7,7 +7,7 @@ from halo_reader.read import read, read_bg
 
 def halo2nc() -> None:
     args = _halo2nc_parse_args()
-    halo = read(src=args.src)
+    halo = read(src_files=args.src)
     if halo is not None:
         nc_buff = halo.to_nc()
         if args.output is not None:
@@ -32,7 +32,7 @@ def _halo2nc_parse_args() -> argparse.Namespace:
 
 def halobg2nc() -> None:
     args = _halobg2nc_parse_args()
-    halobg = read_bg(src=args.src)
+    halobg = read_bg(src_files=args.src)
     if halobg is not None:
         nc_buff = halobg.to_nc()
         if args.output is not None:

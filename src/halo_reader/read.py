@@ -3,7 +3,6 @@ import re
 from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
-from typing import Any
 
 import lark
 import numpy as np
@@ -14,7 +13,6 @@ from halo_reader.data_reader import read_data
 from halo_reader.exceptions import BackgroundReadError
 from halo_reader.halo import Halo, HaloBg
 from halo_reader.metadata import Metadata
-from halo_reader.type_guards import is_bytesio_list
 from halo_reader.variable import Variable
 
 from .exceptions import FileEmpty, HeaderNotFound
@@ -28,30 +26,30 @@ header_parser = lark.Lark(
 )
 
 
-def read(src: list[Path | BytesIO]) -> Halo | None:
+def read(src_files: list[Path | BytesIO]) -> Halo | None:
     halos = []
-    for i, s in enumerate(src):
-        header_end, header_bytes = _read_header(s)
+    for src in src_files:
+        header_end, header_bytes = _read_header(src)
         metadata, time_vars, time_range_vars, range_func = header_parser.parse(
             header_bytes.decode()
         )
-        data_bytes = _read_data(s, header_end)
+        data_bytes = _read_data(src, header_end)
         if not isinstance(metadata.ngates.data, int):
             raise TypeError
         read_data(data_bytes, metadata.ngates.data, time_vars, time_range_vars)
-        vars = {var.name: var for var in time_vars + time_range_vars}
-        vars["time"] = _decimaltime2timestamp(vars["time"], metadata)
-        vars["range"] = range_func(vars["range"], metadata.gate_range)
-        halos.append(Halo(metadata=metadata, **vars))
+        vars_ = {var.name: var for var in time_vars + time_range_vars}
+        vars_["time"] = _decimaltime2timestamp(vars_["time"], metadata)
+        vars_["range"] = range_func(vars_["range"], metadata.gate_range)
+        halos.append(Halo(metadata=metadata, **vars_))
     return Halo.merge(halos)
 
 
 def read_bg(
-    src: list[Path | BytesIO], filenames: list[str] | None = None
+    src_files: list[Path | BytesIO], filenames: list[str] | None = None
 ) -> HaloBg | None:
     halobgs = []
-    for s, fname in _bg_src_fname_list(src, filenames):
-        bg_bytes = _read_background(s)
+    for src, fname in _bg_src_fname_list(src_files, filenames):
+        bg_bytes = _read_background(src)
         background = read_background(bg_bytes)
         if not isinstance(background.data, np.ndarray):
             raise BackgroundReadError
@@ -67,60 +65,62 @@ def read_bg(
 
 
 def _bgfname2timevar(fname: str) -> Variable:
-    m = re.match(
+    match_ = re.match(
         r"^Background_(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.txt$", fname
     )
-    if m:
-        dt = datetime(
-            day=int(m.group(1)),
-            month=int(m.group(2)),
-            year=int("20" + m.group(3)),
-            hour=int(m.group(4)),
-            minute=int(m.group(5)),
-            second=int(m.group(6)),
-            tzinfo=timezone.utc,
-        )
+    if match_:
         return Variable(
             name="time",
             units="unix time",
             dimensions=("time",),
-            data=np.array([dt.timestamp()]),
+            data=np.array(
+                [
+                    datetime(
+                        day=int(match_.group(1)),
+                        month=int(match_.group(2)),
+                        year=int("20" + match_.group(3)),
+                        hour=int(match_.group(4)),
+                        minute=int(match_.group(5)),
+                        second=int(match_.group(6)),
+                        tzinfo=timezone.utc,
+                    ).timestamp()
+                ]
+            ),
         )
 
-    else:
-        raise BackgroundReadError(
-            f"Unexpected time format in filename: {fname}"
-        )
+    raise BackgroundReadError(f"Unexpected time format in filename: {fname}")
 
 
 def _bg_src_fname_list(
-    src: list[Path | BytesIO], filenames: list[str] | None
+    src_files: list[Path | BytesIO], filenames: list[str] | None
 ) -> list[tuple[Path | BytesIO, str]]:
     src_fname_list: list[tuple[Path | BytesIO, str]] = []
-    for i, s in enumerate(src):
-        if isinstance(s, BytesIO):
-            if filenames is None or len(filenames) != len(src):
+    for i, src in enumerate(src_files):
+        if isinstance(src, BytesIO):
+            if filenames is None or len(filenames) != len(src_files):
                 raise BackgroundReadError
-            src_fname_list.append((s, filenames[i]))
+            src_fname_list.append((src, filenames[i]))
         else:
-            src_fname_list.append((s, s.name))
+            src_fname_list.append((src, src.name))
     return src_fname_list
 
 
-def _decimaltime2timestamp(time: Variable, md: Metadata) -> Variable:
+def _decimaltime2timestamp(time: Variable, metadata: Metadata) -> Variable:
     if time.long_name != "decimal time" or time.units != "hours":
         raise NotImplementedError
-    if md.start_time.units != "unix time":
+    if metadata.start_time.units != "unix time":
         raise NotImplementedError
     day_in_seconds = 86400
     hour_in_seconds = 3600
     if (
-        not isinstance(md.start_time.data, np.ndarray)
-        or np.ndim(md.start_time.data) != 1
-        or md.start_time.data.size != 1
+        not isinstance(metadata.start_time.data, np.ndarray)
+        or np.ndim(metadata.start_time.data) != 1
+        or metadata.start_time.data.size != 1
     ):
         raise TypeError
-    t_start = np.floor(md.start_time.data / day_in_seconds) * day_in_seconds
+    t_start = (
+        np.floor(metadata.start_time.data / day_in_seconds) * day_in_seconds
+    )
     if not isinstance(time.data, np.ndarray):
         raise TypeError
     time_ = t_start + hour_in_seconds * time.data
@@ -135,8 +135,10 @@ def _decimaltime2timestamp(time: Variable, md: Metadata) -> Variable:
 
 def _find_change_of_day(start: int, time: npt.NDArray) -> int:
     half_day = 43200
-    for i, (a, b) in enumerate(zip(time[start:-1], time[start + 1 :])):
-        if a - b > half_day:
+    for i, (time_current, time_next) in enumerate(
+        zip(time[start:-1], time[start + 1 :])
+    ):
+        if time_current - time_next > half_day:
             return i + 1
     return -1
 
@@ -188,10 +190,10 @@ def _find_header_end(src: BufferedReader | BytesIO) -> int:
     return loc_end
 
 
-def _try_header_end(f: BufferedReader | BytesIO, guess: int) -> int:
-    pos = f.tell()
-    fbytes = f.read(guess)
-    f.seek(pos)
+def _try_header_end(file_io: BufferedReader | BytesIO, guess: int) -> int:
+    pos = file_io.tell()
+    fbytes = file_io.read(guess)
+    file_io.seek(pos)
     loc_sep = fbytes.find(b"****")
     if loc_sep < 0:
         return -1

@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "halo-reader"
+description = "HALO Photonics wind doppler lidar file reader"
 dynamic = ["version"]
 authors = [
   { name="Niko Leskinen", email="niko.leskinen@fmi.fi" },
@@ -12,7 +13,7 @@ requires-python = ">=3.10"
 readme = "README.md"
 license = { file="LICENSE" }
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -28,6 +29,12 @@ dependencies = [
   "netCDF4",
 ]
 
+[project.urls]
+homepage = "https://github.com/actris-cloudnet/halo-reader"
+repository = "https://github.com/actris-cloudnet/halo-reader"
+changelog = "https://github.com/actris-cloudnet/halo-reader/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/actris-cloudnet/halo-reader/issues"
+
 [project.optional-dependencies]
 dev = [
   "mypy",
@@ -35,6 +42,7 @@ dev = [
   "pytest-cov",
   "black",
   "flake8",
+  "pylint",
   "autoflake",
   "isort",
   "pre-commit",
@@ -69,3 +77,14 @@ warn_unused_ignores = true
 [tool.black]
 line-length = 79
 target-version = ['py310']
+
+[tool.pylint]
+ignore-patterns = "test_.*\\.py"
+max-line-length = 79
+good-names = ["i", "j", "k", "v", "f", "nc"]
+disable = ["C0116", "C0114", "C0115","R0902", "E1101","E0611", "C3001"]
+extension-pkg-whitelist = [
+  "netCDF4",
+  "halo_reader.background_reader",
+  "halo_reader.data_reader",
+  ]
