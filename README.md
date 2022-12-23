@@ -1,6 +1,7 @@
 # HALO reader
 
 [![Tests](https://github.com/actris-cloudnet/halo-reader/actions/workflows/ci.yml/badge.svg)](https://github.com/actris-cloudnet/halo-reader/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/halo-reader.svg)](https://badge.fury.io/py/halo-reader)
 
 Reads and merges raw HALO Photonics wind doppler lidar files into a netCDF file.
 
