@@ -11,7 +11,6 @@ Todo:
 * [x] Tests
 * [ ] Standard/long netcdf variable names following CF Conventions
 
-
 ## Installation
 
 ```bash
@@ -27,6 +26,7 @@ pip install halo-reader
 ```
 
 ## Usage
+
 ```bash
 halo2nc --help
 halo2nc raw_file.hpl [another_raw_file.hpl ...] -o output.nc
@@ -36,3 +36,7 @@ halobg2nc --help
 halobg2nc Background_TIMESTAMP.txt [another_background_file.txt ...] -o output.nc
 # TIMESTAMP format: ddmmyy-HHMMSS
 ```
+
+## License
+
+MIT
