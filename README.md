@@ -27,6 +27,8 @@ pip install halo-reader
 
 ## Usage
 
+### Convert raw files to netcdf
+
 ```bash
 halo2nc --help
 halo2nc raw_file.hpl [another_raw_file.hpl ...] -o output.nc
@@ -36,6 +38,40 @@ halobg2nc --help
 halobg2nc Background_TIMESTAMP.txt [another_background_file.txt ...] -o output.nc
 # TIMESTAMP format: ddmmyy-HHMMSS
 ```
+
+### Visualise raw files directly from Cloudnet
+
+```python
+from halodata.datasets import CloudnetData, CloudnetDataset
+from haloboard.writer import Writer
+import matplotlib.pyplot as plt
+
+dataset = CloudnetDataset(
+    root="data",
+    site="eriswil",
+    scantype="stare",
+    date_from="2023-01-01",
+    date_to="2023-01-03",
+)
+
+
+writer = Writer()
+for i, (date, halo, bg) in enumerate(dataset):
+    fig, ax = plt.subplots(2,1, figsize=(18, 10))
+    halo.plot(title=f"{date} intensity", ax = ax[0])
+    bg.plot(title="background", ax = ax[1])
+    writer.add_figure(f"halo-{date}", fig)
+```
+This downloads raw halo files into `data` folder,
+and creates instensity and background plots into a `vis` folder.
+
+Browse visualisations:
+```bash
+haloboard
+```
+
+
+
 
 ## License
 

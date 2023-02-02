@@ -1,0 +1,6 @@
+<!doctype html>
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<title>Haloboard</title>
+{% for p in image_paths %}
+<img src="{{ p }}">
+{% endfor %}

@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import matplotlib.pyplot as plt
 import netCDF4
+from matplotlib.axes import Axes
 
 from halo_reader.metadata import Metadata
 from halo_reader.type_guards import is_none_list
@@ -56,6 +58,19 @@ class Halo:
                 raise TypeError
         return Halo(**halo_attrs)
 
+    def plot(self, title: str | None = None, ax: Axes | None = None) -> Axes:
+        if title is None:
+            title = "intensity"
+        if ax is None:
+            _, ax = plt.subplots(1, 1)
+        d_bound = 1e-2
+        clim = (1 - d_bound, 1 + d_bound)
+        ax.pcolor(
+            self.time.data, self.range.data, self.intensity.data.T, clim=clim
+        )
+        ax.set_title(title)
+        return ax
+
 
 @dataclass(slots=True)
 class HaloBg:
@@ -92,3 +107,21 @@ class HaloBg:
             else:
                 raise TypeError
         return HaloBg(**halobg_attrs)
+
+    @classmethod
+    def is_bgfilename(cls, filename: str) -> bool:
+        return filename.lower().startswith("background_")
+
+    def plot(self, title: str | None = None, ax: Axes | None = None) -> Axes:
+        if title is None:
+            title = "background"
+        if ax is None:
+            _, ax = plt.subplots(1, 1)
+        mean = self.background.data.mean()
+        std = self.background.data.std()
+        clim = (mean - std, mean + std)
+        ax.pcolor(
+            self.time.data, self.range.data, self.background.data.T, clim=clim
+        )
+        ax.set_title(title)
+        return ax

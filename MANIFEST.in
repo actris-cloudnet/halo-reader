@@ -1,2 +1,4 @@
 include src/halo_reader/grammar_header.lark
+include src/haloboard/templates/index.html
+include src/haloboard/static/favicon.ico
 global-include *.pyx

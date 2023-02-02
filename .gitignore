@@ -1,6 +1,6 @@
 # Cython
-src/**/*.html
-src/**/*.c
+src/halo_reader/**/*.c
+src/halo_reader/**/*.html
 clu-tests/
 
 # Byte-compiled / optimized / DLL files
