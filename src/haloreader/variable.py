@@ -7,8 +7,8 @@ import netCDF4
 import numpy as np
 import numpy.typing as npt
 
-from halo_reader.exceptions import MergeError, NetCDFWriteError
-from halo_reader.type_guards import is_float_list, is_int_list, is_ndarray_list
+from haloreader.exceptions import MergeError, NetCDFWriteError
+from haloreader.type_guards import is_float_list, is_int_list, is_ndarray_list
 
 DataType: TypeAlias = npt.NDArray | int | float | None
 

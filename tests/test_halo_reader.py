@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from halo_reader.exceptions import FileEmpty, UnexpectedDataTokens
-from halo_reader.read import read, read_bg
+from haloreader.exceptions import FileEmpty, UnexpectedDataTokens
+from haloreader.read import read, read_bg
 
 raw_files_pass = Path("tests/raw-files/pass/")
 raw_files_xfail = Path("tests/raw-files/xfail/")

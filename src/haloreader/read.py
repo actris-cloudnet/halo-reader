@@ -8,17 +8,17 @@ import lark
 import numpy as np
 import numpy.typing as npt
 
-from halo_reader.background_reader import read_background
-from halo_reader.data_reader import read_data
-from halo_reader.exceptions import BackgroundReadError
-from halo_reader.halo import Halo, HaloBg
-from halo_reader.metadata import Metadata
-from halo_reader.variable import Variable
+from haloreader.background_reader import read_background
+from haloreader.data_reader import read_data
+from haloreader.exceptions import BackgroundReadError
+from haloreader.halo import Halo, HaloBg
+from haloreader.metadata import Metadata
+from haloreader.variable import Variable
 
 from .exceptions import FileEmpty, HeaderNotFound
 from .transformer import HeaderTransformer
 
-grammar_header = pkgutil.get_data("halo_reader", "grammar_header.lark")
+grammar_header = pkgutil.get_data("haloreader", "grammar_header.lark")
 if not isinstance(grammar_header, bytes):
     raise FileNotFoundError("Header grammar file not found")
 header_parser = lark.Lark(

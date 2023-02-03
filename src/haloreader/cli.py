@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from halo_reader.read import read, read_bg
+from haloreader.read import read, read_bg
 
 
 def halo2nc() -> None:

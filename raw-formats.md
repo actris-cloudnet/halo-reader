@@ -99,7 +99,7 @@ i3,1x,f6.4,1x,f8.6,1x,e12.6,1x,f6.4 - repeat for no. gates
 Header fields might vary between formats.
 For example, `No. of rays in file` might be
 replaces with `No. of waypoints in file`.
-[Header grammar](src/halo_reader/grammar_header.lark)
+[Header grammar](src/haloreader/grammar_header.lark)
 defines currently supported header formats.
 
 ### Time overflow

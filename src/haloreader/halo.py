@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import netCDF4
 from matplotlib.axes import Axes
 
-from halo_reader.metadata import Metadata
-from halo_reader.type_guards import is_none_list
-from halo_reader.variable import Variable
+from haloreader.metadata import Metadata
+from haloreader.type_guards import is_none_list
+from haloreader.variable import Variable
 
 
 @dataclass(slots=True)

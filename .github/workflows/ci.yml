@@ -27,4 +27,4 @@ jobs:
       - name: Style pylint
         run: pylint src/
       - name: Run tests
-        run: pytest --cov=halo_reader
+        run: pytest --cov=haloreader

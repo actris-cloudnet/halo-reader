@@ -1,6 +1,6 @@
 import numpy as np
 
-from halo_reader.variable import Variable
+from haloreader.variable import Variable
 
 from libc.stdlib cimport atof
 from libc.string cimport strlen, strspn, strtok

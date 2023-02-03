@@ -6,9 +6,9 @@ from typing import Iterable
 import requests
 import urllib3
 
-from halo_reader.halo import HaloBg
-from halo_reader.read import read, read_bg
-from halo_reader.scantype import ScanType
+from haloreader.halo import HaloBg
+from haloreader.read import read, read_bg
+from haloreader.scantype import ScanType
 
 
 class Session(requests.Session):
@@ -118,7 +118,7 @@ def _get_file(
     trg_path = _record2path(root, record)
     if trg_path.exists():
         if not trg_path.is_file():
-            raise Exception(f"{trg_path} is not a file")
+            raise FileNotFoundError(f"{trg_path} is not a file")
         return trg_path
     logging.info("Downloading %s", trg_path)
     res = session.get(record["downloadUrl"])

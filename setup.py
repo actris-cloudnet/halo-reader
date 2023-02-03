@@ -5,14 +5,12 @@ from setuptools import Extension, setup
 if __name__ == "__main__":
     extensions = [
         Extension(
-            name="halo_reader.data_reader",
-            sources=["src/halo_reader/data_reader/data_reader.pyx"],
+            name="haloreader.data_reader",
+            sources=["src/haloreader/data_reader/data_reader.pyx"],
         ),
         Extension(
-            name="halo_reader.background_reader",
-            sources=[
-                "src/halo_reader/background_reader/background_reader.pyx"
-            ],
+            name="haloreader.background_reader",
+            sources=["src/haloreader/background_reader/background_reader.pyx"],
         ),
     ]
     setup(

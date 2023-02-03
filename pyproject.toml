@@ -53,17 +53,17 @@ dev = [
 ]
 
 [project.scripts]
-halo2nc = "halo_reader.cli:halo2nc"
-halobg2nc = "halo_reader.cli:halobg2nc"
+halo2nc = "haloreader.cli:halo2nc"
+halobg2nc = "haloreader.cli:halobg2nc"
 haloboard = "haloboard.app:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 [tool.setuptools.dynamic]
-version = {attr = "halo_reader.__version__"}
+version = {attr = "haloreader.__version__"}
 
 [tool.pytest.ini_options]
-addopts = "--cov=halo_reader --cov-report html"
+addopts = "--cov=haloreader --cov-report html"
 testpaths = [
     "tests",
 ]
@@ -98,6 +98,6 @@ disable = [
 ]
 extension-pkg-whitelist = [
   "netCDF4",
-  "halo_reader.background_reader",
-  "halo_reader.data_reader",
+  "haloreader.background_reader",
+  "haloreader.data_reader",
   ]

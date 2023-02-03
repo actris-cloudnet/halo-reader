@@ -5,8 +5,8 @@ from typing import Any, TypeGuard
 
 import netCDF4
 
-from halo_reader.scantype import ScanType
-from halo_reader.type_guards import is_str_list
+from haloreader.scantype import ScanType
+from haloreader.type_guards import is_str_list
 
 
 @dataclass(slots=True)

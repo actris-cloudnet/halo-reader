@@ -20,4 +20,4 @@ ignore =
 
 #E731: do not assign a lambda expression, use a def
 per-file-ignores =
-  src/halo_reader/transformer.py:E731
+  src/haloreader/transformer.py:E731

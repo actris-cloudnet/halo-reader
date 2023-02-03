@@ -1,9 +1,9 @@
 from typing import Callable
 
-from halo_reader.attribute import Attribute
-from halo_reader.metadata import Metadata
-from halo_reader.transformer import HeaderTransformer
-from halo_reader.variable import Variable
+from haloreader.attribute import Attribute
+from haloreader.metadata import Metadata
+from haloreader.transformer import HeaderTransformer
+from haloreader.variable import Variable
 
 class Transformer: ...
 
