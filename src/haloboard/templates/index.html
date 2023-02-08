@@ -1,6 +1,20 @@
 <!doctype html>
-<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-<title>Haloboard</title>
-{% for p in image_paths %}
-<img src="{{ p }}">
-{% endfor %}
+<html>
+  <head>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Haloboard</title>
+  </head>
+  <body>
+    <main>
+      <div class="container">
+        {% for p in image_paths %}
+        <section>
+          <h4>{{ p }}</h4>
+          <img src="{{ p }}">
+        </section>
+        {% endfor %}
+      </div>
+    </main>
+  </body>
+</html>

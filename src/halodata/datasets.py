@@ -1,7 +1,7 @@
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Iterable
+from typing import Callable, Iterable
 
 import requests
 import urllib3
@@ -12,7 +12,7 @@ from haloreader.scantype import ScanType
 
 
 class Session(requests.Session):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         retries = urllib3.util.retry.Retry(total=10, backoff_factor=0.2)
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
@@ -22,9 +22,9 @@ class Session(requests.Session):
     def get_records(
         self,
         site: str,
-        scantype: ScanType,
         date_from: str,
-        date_to: str = None,
+        date_to: str,
+        scantype: ScanType,
     ) -> tuple[list[dict], list[dict]]:
         if date_to is None:
             date_to = date_from
@@ -46,44 +46,52 @@ class Session(requests.Session):
                 records_bg.append(rec)
         return records_halo, records_bg
 
+    def get_background_records(
+        self, site: str, date_from: str, date_to: str
+    ) -> list[dict]:
+        records = self.get(
+            self.url,
+            params={
+                "instrument": "halo-doppler-lidar",
+                "site": site,
+                "dateFrom": date_from,
+                "dateTo": date_to,
+            },
+        ).json()
+        records_bg = []
+        for rec in records:
+            if HaloBg.is_bgfilename(rec["filename"]):
+                records_bg.append(rec)
+        return records_bg
 
-class CloudnetData:
-    def __init__(self, root: str, site: str, scantype: str):
-        self.root = root
-        self.session = Session()
-        self.site = site
-        self.scantype = scantype
 
-    def __getitem__(self, date: str):
-        if date is None:
-            return None, None
-        records_halo, records_bg = self.session.get_records(
-            self.site, ScanType[self.scantype.upper()], date
-        )
-        records_halo.sort(key=lambda r: r["filename"])
-        records_bg.sort(key=lambda r: r["filename"])
-        file_paths_halo = (
-            [_get_file(self.root, self.session, rec) for rec in records_halo]
-            if records_halo is not None
-            else []
-        )
-        file_paths_bg = (
-            [_get_file(self.root, self.session, rec) for rec in records_bg]
-            if records_bg is not None
-            else []
-        )
-        return read(file_paths_halo), read_bg(file_paths_bg)
+def _keyfun(key: str) -> Callable[[dict], str]:
+    def _fun(record: dict) -> str:
+        val = record[key]
+        if isinstance(val, str):
+            return val
+        raise TypeError
+
+    return _fun
 
 
 class CloudnetDataset:
     # pylint: disable=too-many-arguments
     def __init__(
-        self, root: str, site: str, scantype: str, date_from: str, date_to: str
+        self,
+        root: str,
+        site: str,
+        scantype: str,
+        date_from: str,
+        date_to: str,
     ):
         self.root = root
         self.session = Session()
         records_halo, records_bg = self.session.get_records(
-            site, ScanType[scantype.upper()], date_from, date_to
+            site=site,
+            date_from=date_from,
+            date_to=date_to,
+            scantype=ScanType[scantype.upper()],
         )
         self.records_halo = _group_by(
             records_halo, "measurementDate", sort_group_by="filename"
@@ -112,9 +120,34 @@ class CloudnetDataset:
             yield date, read(file_paths_halo), read_bg(file_paths_bg)
 
 
-def _get_file(
-    root: str, session: Session, record: dict | None
-) -> pathlib.Path:
+class CloudnetBackgroundDataset:
+    def __init__(
+        self,
+        root: str,
+        site: str,
+        date_from: str,
+        date_to: str,
+    ):
+        self.root = root
+        self.session = Session()
+        records_bg = self.session.get_background_records(
+            site=site,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        self.records_bg = _group_by(
+            records_bg, "measurementDate", sort_group_by="filename"
+        )
+
+    def __iter__(self) -> Iterable:
+        for date, records in sorted(self.records_bg.items()):
+            file_paths_bg = [
+                _get_file(self.root, self.session, r) for r in records
+            ]
+            yield date, read_bg(file_paths_bg)
+
+
+def _get_file(root: str, session: Session, record: dict) -> pathlib.Path:
     trg_path = _record2path(root, record)
     if trg_path.exists():
         if not trg_path.is_file():
@@ -142,5 +175,5 @@ def _group_by(
         groups[rec[key]].append(rec)
     if sort_group_by is not None:
         for k, recs in groups.items():
-            groups[k] = sorted(recs, key=lambda rec: rec[sort_group_by])
+            groups[k] = sorted(recs, key=_keyfun(sort_group_by))
     return groups

@@ -9,40 +9,38 @@ logging.basicConfig(level=logging.INFO)
 
 app = flask.Flask(
     __name__,
-    template_folder=pathlib.Path(__file__).parent.joinpath("templates"),
+    template_folder=str(pathlib.Path(__file__).parent.joinpath("templates")),
 )
 ROOT = DEFAULT_ROOT
 
 
-def _find_images():
+def _find_images() -> list:
     img_dir = pathlib.Path(ROOT)
     return sorted(img_dir.glob(f"*.{IMAGE_EXT}"))
 
 
 @app.route("/")
-def index():
+def index() -> str:
     image_paths = _find_images()
     image_paths = ["/" + str(p) for p in image_paths]
     return flask.render_template("index.html", image_paths=image_paths)
 
 
 @app.route(f"/{ROOT}/<path:name>")
-def serve_files(name):
+def serve_files(name: str) -> flask.wrappers.Response:
     return flask.send_from_directory(
         pathlib.Path(DEFAULT_ROOT).resolve(), name, as_attachment=True
     )
 
 
-@app.route("/static/favicon.ico")
-def favicon():
+@app.route("/static/<path:name>")
+def serve_static(name: str) -> flask.wrappers.Response:
     return flask.send_from_directory(
-        pathlib.Path(app.root_path, "static"),
-        "favicon.ico",
-        mimetype="image/svg+xml",
+        pathlib.Path(app.root_path, "static"), name
     )
 
 
-def run():
+def run() -> None:
     app.run(debug=True)
 
 

@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata&display=swap');
+html {
+  background: #333438;
+}
+section {
+  background: white;
+  margin: 0.5em;
+  padding: 1em;
+  border-radius: 5px;
+
+}
+main {
+  display: flex;
+  justify-content: center;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, 1200px);
+
+}
+section h4 {
+  font-family: 'Inconsolata', monospace;
+  font-size: 85%;
+  margin: 0;
+  font-weight: 400;
+}
+img {
+  width: 100%
+}

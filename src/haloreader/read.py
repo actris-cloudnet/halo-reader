@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
+from typing import Sequence
 
 import lark
 import numpy as np
@@ -26,7 +27,7 @@ header_parser = lark.Lark(
 )
 
 
-def read(src_files: list[Path | BytesIO]) -> Halo | None:
+def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
     halos = []
     for src in src_files:
         header_end, header_bytes = _read_header(src)
@@ -45,7 +46,7 @@ def read(src_files: list[Path | BytesIO]) -> Halo | None:
 
 
 def read_bg(
-    src_files: list[Path | BytesIO], filenames: list[str] | None = None
+    src_files: Sequence[Path | BytesIO], filenames: list[str] | None = None
 ) -> HaloBg | None:
     halobgs = []
     for src, fname in _bg_src_fname_list(src_files, filenames):
@@ -92,8 +93,8 @@ def _bgfname2timevar(fname: str) -> Variable:
 
 
 def _bg_src_fname_list(
-    src_files: list[Path | BytesIO], filenames: list[str] | None
-) -> list[tuple[Path | BytesIO, str]]:
+    src_files: Sequence[Path | BytesIO], filenames: list[str] | None
+) -> Sequence[tuple[Path | BytesIO, str]]:
     src_fname_list: list[tuple[Path | BytesIO, str]] = []
     for i, src in enumerate(src_files):
         if isinstance(src, BytesIO):

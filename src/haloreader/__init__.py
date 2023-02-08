@@ -1,1 +1,4 @@
-__version__ = "0.0.2"
+from haloreader.background_correction.correct_background import (
+    correct_background,
+)
+from haloreader.version import __version__

@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-import matplotlib.pyplot as plt
 import netCDF4
-from matplotlib.axes import Axes
+import numpy as np
 
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_none_list
@@ -56,20 +55,13 @@ class Halo:
                 halo_attrs[attr_name] = None
             else:
                 raise TypeError
-        return Halo(**halo_attrs)
 
-    def plot(self, title: str | None = None, ax: Axes | None = None) -> Axes:
-        if title is None:
-            title = "intensity"
-        if ax is None:
-            _, ax = plt.subplots(1, 1)
-        d_bound = 1e-2
-        clim = (1 - d_bound, 1 + d_bound)
-        ax.pcolor(
-            self.time.data, self.range.data, self.intensity.data.T, clim=clim
-        )
-        ax.set_title(title)
-        return ax
+        halo = Halo(**halo_attrs)
+        if not isinstance(halo.time.data, np.ndarray):
+            raise TypeError
+        if not _is_increasing(halo.time.data):
+            raise ValueError("Time must be increasing")
+        return halo
 
 
 @dataclass(slots=True)
@@ -106,22 +98,17 @@ class HaloBg:
                 halobg_attrs[attr_name] = None
             else:
                 raise TypeError
-        return HaloBg(**halobg_attrs)
+        halobg = HaloBg(**halobg_attrs)
+        if not isinstance(halobg.time.data, np.ndarray):
+            raise TypeError
+        if not _is_increasing(halobg.time.data):
+            raise ValueError("Time must be increasing")
+        return halobg
 
     @classmethod
     def is_bgfilename(cls, filename: str) -> bool:
         return filename.lower().startswith("background_")
 
-    def plot(self, title: str | None = None, ax: Axes | None = None) -> Axes:
-        if title is None:
-            title = "background"
-        if ax is None:
-            _, ax = plt.subplots(1, 1)
-        mean = self.background.data.mean()
-        std = self.background.data.std()
-        clim = (mean - std, mean + std)
-        ax.pcolor(
-            self.time.data, self.range.data, self.background.data.T, clim=clim
-        )
-        ax.set_title(title)
-        return ax
+
+def _is_increasing(time: np.ndarray) -> bool:
+    return bool(np.all(np.diff(time) > 0))
