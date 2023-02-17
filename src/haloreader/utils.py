@@ -1,4 +1,18 @@
+import time
 from datetime import datetime
+
+
+class Timer:
+    def __init__(self, name: str = "timer"):
+        self.name = name
+
+    def __enter__(self):
+        self.start = time.perf_counter()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        end = time.perf_counter()
+        t = end - self.start
+        print(f"{self.name}: {t}")
 
 
 def two_column_format(key: str, vals: list, left_width: int) -> str:

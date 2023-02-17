@@ -29,7 +29,9 @@ dependencies = [
   "netCDF4",
   "matplotlib",
   "flask",
-  "requests"
+  "requests",
+  "scikit-learn",
+  "scipy",
 ]
 
 [project.urls]

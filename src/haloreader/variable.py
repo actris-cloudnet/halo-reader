@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Any, TypeAlias, TypeGuard
 
@@ -105,7 +106,8 @@ class Variable:
 def _plot_intensity(  # type: ignore[no-any-unimported]
     var: Variable, ax: Axes
 ) -> None:
-    vmin, vmax = (1 - 1e-2, 1 + 1e-2)
+    vdelta = 1e-3
+    vmin, vmax = (1 - vdelta, 1 + vdelta)
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     ax.imshow(

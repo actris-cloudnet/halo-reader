@@ -19,6 +19,20 @@ main {
   width: min(100vw, 1200px);
 
 }
+.input-filter {
+  display: flex;
+  justify-content: center;
+}
+.input-filter input {
+  width: 100%;
+  margin: 1em 0.5em;
+  padding: 1em 2em;
+  border-radius: 5px;
+  border-style: none;
+}
+.input-filter input:focus {
+  outline: #c15143ff solid 2px;
+}
 section h4 {
   font-family: 'Inconsolata', monospace;
   font-size: 85%;

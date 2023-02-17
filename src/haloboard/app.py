@@ -1,3 +1,4 @@
+import argparse
 import logging
 import pathlib
 
@@ -7,11 +8,17 @@ from . import DEFAULT_ROOT, IMAGE_EXT
 
 logging.basicConfig(level=logging.INFO)
 
+
+parser = argparse.ArgumentParser("haloboard")
+parser.add_argument(
+    "--dir", type=pathlib.Path, default=pathlib.Path(DEFAULT_ROOT)
+)
+args = parser.parse_args()
 app = flask.Flask(
     __name__,
     template_folder=str(pathlib.Path(__file__).parent.joinpath("templates")),
 )
-ROOT = DEFAULT_ROOT
+ROOT = args.dir
 
 
 def _find_images() -> list:
@@ -29,7 +36,7 @@ def index() -> str:
 @app.route(f"/{ROOT}/<path:name>")
 def serve_files(name: str) -> flask.wrappers.Response:
     return flask.send_from_directory(
-        pathlib.Path(DEFAULT_ROOT).resolve(), name, as_attachment=True
+        pathlib.Path(ROOT).resolve(), name, as_attachment=True
     )
 
 

@@ -1,11 +1,92 @@
-import numpy as np
+import logging
+from pdb import set_trace as db
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.ndimage import gaussian_filter
+from scipy.signal import medfilt2d
+from sklearn import datasets, linear_model
+
+from haloboard.writer import Writer
 from haloreader.halo import Halo, HaloBg
 from haloreader.variable import Variable
 
 
+def threshold_cloudmask(
+    intensity: Variable,
+    raw_threshold: float = 1.008,
+    median_filter_threshold: float = 1.003,
+    gaussian_threshold: float = 0.15,
+) -> np.ndarray:
+    raw_mask = intensity.data > raw_threshold
+    med_mask = (
+        medfilt2d(intensity.data, kernel_size=5) > median_filter_threshold
+    )
+    raw_or_med_mask = raw_mask | med_mask
+    gaussian = gaussian_filter(
+        raw_or_med_mask.astype(float), sigma=8, radius=16
+    )
+    gaussian_mask = np.zeros_like(raw_or_med_mask)
+    gaussian_mask[gaussian > gaussian_threshold] = True
+    return raw_or_med_mask | gaussian_mask
+
+
+def snr_fit_fast(
+    intensity: Variable, cloudmask: np.ndarray, ax=None
+) -> Variable:
+    _mask = cloudmask.copy()
+    _mask[:, :3] = True  # ignore first three gates
+    _range = np.arange(intensity.data.shape[1], dtype=intensity.data.dtype)
+    _ones = np.ones_like(_range)
+    _A = np.concatenate((_range[:, np.newaxis], _ones[:, np.newaxis]), axis=1)
+    A = np.repeat(_A[np.newaxis, :, :], intensity.data.shape[0], axis=0)
+    A_mask = np.repeat(_mask[:, :, np.newaxis], 2, axis=2)
+    A[A_mask] = 0
+    A_pinv = np.linalg.pinv(A)
+    _intensity = intensity.data.copy()
+    _intensity[_mask] = 0
+    x = A_pinv @ _intensity[:, :, np.newaxis]
+    noise_fit = np.squeeze(_A[np.newaxis, :, :] @ x, axis=2)
+    intensity_corrected = intensity.data.copy()
+    intensity_corrected /= noise_fit
+    return Variable.like(
+        intensity,
+        name="intensity_corrected_step2_fast",
+        long_name="snr fit corrected intensity",
+        data=intensity_corrected,
+    )
+
+
+def snr_fit(intensity: Variable, mask: np.ndarray) -> Variable:
+    _range = np.arange(len(intensity.data[0]))
+    writer = Writer()
+    intensity_corrected = intensity.data.copy()
+    N = len(intensity.data)
+    for i, (profile, _mask) in enumerate(
+        zip(intensity.data, np.logical_not(mask))
+    ):
+        lr = linear_model.LinearRegression()
+        huber = linear_model.HuberRegressor(
+            epsilon=1.35, max_iter=1000, alpha=0.0001, tol=1e-03
+        )
+        _mask[:3] = False
+        X = _range[_mask][:, np.newaxis]
+        y = profile[_mask]
+        # huber.fit(X, y)
+        # intensity_corrected[i] /= huber.predict(_range[:, np.newaxis])
+        lr.fit(X, y)
+        intensity_corrected[i] /= lr.predict(_range[:, np.newaxis])
+    return Variable.like(
+        intensity,
+        name="intensity_corrected_step2",
+        long_name="snr fit corrected intensity",
+        data=intensity_corrected,
+    )
+
+
 def correct_background(
-    halo: Halo, halobg: HaloBg, p_amp: Variable
+    halo: Halo, halobg: HaloBg, p_amp: Variable, p_amp_normalised: bool
 ) -> Variable:
     if not (
         isinstance(halo.intensity.data, np.ndarray)
@@ -15,18 +96,26 @@ def correct_background(
         and isinstance(p_amp.data, np.ndarray)
     ):
         raise TypeError
+    if p_amp_normalised:
+        nscale = halobg.background.data.sum(axis=1)
+    else:
+        nscale = np.ones_like(halobg.background.data[:, 0])
+
+    _p_amp_scaled = nscale[:, np.newaxis] * p_amp.data[np.newaxis, :]
     background_shifted = Variable.like(
-        halobg.background, data=halobg.background.data - p_amp.data
+        halobg.background,
+        data=halobg.background.data - _p_amp_scaled,
     )
     _background_fit = _linear_fit(background_shifted)
     i2b = _previous_measurement_map(halo.time.data, halobg.time.data)
-    bg_mask = i2b is None
+    bg_mask = np.not_equal(i2b, None)
     if not np.all(bg_mask):
         raise ValueError(
             "Could not find matching background measurement "
             "for all the intensity profiles"
         )
     i2b = i2b[bg_mask].astype(int)
+    p_amp_scaled = _p_amp_scaled[i2b]
     intensity = Variable.like(
         halo.intensity, data=halo.intensity.data[bg_mask]
     )
@@ -45,10 +134,10 @@ def correct_background(
         raise TypeError
     return Variable.like(
         intensity,
-        name="intensity_corrected",
+        name="intensity_corrected_step1",
         data=intensity.data
         * background.data
-        / (p_amp.data + background_fit.data),
+        / (p_amp_scaled + background_fit.data),
     )
 
 

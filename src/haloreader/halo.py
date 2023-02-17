@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pdb import set_trace as db
 from typing import Any
 
 import netCDF4
@@ -108,6 +109,52 @@ class HaloBg:
     @classmethod
     def is_bgfilename(cls, filename: str) -> bool:
         return filename.lower().startswith("background_")
+
+    def p_amplifier(self, normalise: bool = False) -> Variable:
+        if normalise:
+            _sum_over_gates = self.background.data.sum(axis=1)
+            _normalised_bg = (
+                self.background.data / _sum_over_gates[:, np.newaxis]
+            )
+            return Variable(
+                name="p_amp",
+                long_name=(
+                    "Mean of normalised background over time. "
+                    "Profiles are normalised with sum over gates"
+                ),
+                dimensions=("range",),
+                data=_normalised_bg.mean(axis=0),
+            )
+        else:
+            return Variable(
+                name="p_amp",
+                long_name="Mean of background over time",
+                dimensions=("range",),
+                data=self.background.data.mean(axis=0),
+            )
+
+    def p_amplifier_std(self, normalise: bool = False) -> Variable:
+        if normalise:
+            _sum_over_gates = self.background.data.sum(axis=1)
+            _normalised_bg = (
+                self.background.data / _sum_over_gates[:, np.newaxis]
+            )
+            return Variable(
+                name="p_amp_std",
+                long_name=(
+                    "Std of normalised background over time. "
+                    "Profiles are normalised with sum over gates"
+                ),
+                dimensions=("range",),
+                data=_normalised_bg.std(axis=0),
+            )
+        else:
+            return Variable(
+                name="p_amp_std",
+                long_name="Std of background over time",
+                dimensions=("range",),
+                data=self.background.data.std(axis=0),
+            )
 
 
 def _is_increasing(time: np.ndarray) -> bool:
