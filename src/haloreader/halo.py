@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from pdb import set_trace as db
 from typing import Any
 
+import matplotlib.pyplot as plt
 import netCDF4
 import numpy as np
+import logging
 
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_none_list
@@ -61,8 +63,27 @@ class Halo:
         if not isinstance(halo.time.data, np.ndarray):
             raise TypeError
         if not _is_increasing(halo.time.data):
+            halo.remove_profiles_with_duplicate_time()
+        if not _is_increasing(halo.time.data):
             raise ValueError("Time must be increasing")
         return halo
+
+    def remove_profiles_with_duplicate_time(self):
+        mask = _duplicate_time_mask(self.time.data)
+        for attr_name in self.__dataclass_fields__.keys():
+            halo_attr = getattr(self, attr_name)
+            if (
+                isinstance(halo_attr, Variable)
+                and isinstance(halo_attr.dimensions, tuple)
+                and self.time.name in halo_attr.dimensions
+            ):
+                index = tuple(
+                    [
+                        mask if d == self.time.name else slice(None)
+                        for i, d in enumerate(halo_attr.dimensions)
+                    ]
+                )
+                halo_attr.data = halo_attr.data[index]
 
 
 @dataclass(slots=True)
@@ -83,6 +104,12 @@ class HaloBg:
         if isinstance(nc_buf, memoryview):
             return nc_buf
         raise TypeError
+
+    def slice_range(self, slice_: int | slice) -> None:
+        if isinstance(slice_, int):
+            slice_ = slice(slice_)
+        self.range.data = self.range.data[slice_]
+        self.background.data = self.background.data[:,slice_]
 
     @classmethod
     def merge(cls, halobgs: list[HaloBg]) -> HaloBg | None:
@@ -113,9 +140,7 @@ class HaloBg:
     def p_amplifier(self, normalise: bool = False) -> Variable:
         if normalise:
             _sum_over_gates = self.background.data.sum(axis=1)
-            _normalised_bg = (
-                self.background.data / _sum_over_gates[:, np.newaxis]
-            )
+            _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
             return Variable(
                 name="p_amp",
                 long_name=(
@@ -136,9 +161,7 @@ class HaloBg:
     def p_amplifier_std(self, normalise: bool = False) -> Variable:
         if normalise:
             _sum_over_gates = self.background.data.sum(axis=1)
-            _normalised_bg = (
-                self.background.data / _sum_over_gates[:, np.newaxis]
-            )
+            _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
             return Variable(
                 name="p_amp_std",
                 long_name=(
@@ -159,3 +182,11 @@ class HaloBg:
 
 def _is_increasing(time: np.ndarray) -> bool:
     return bool(np.all(np.diff(time) > 0))
+
+
+def _duplicate_time_mask(time: np.ndarray) -> np.ndarray:
+    _mask = np.isclose(np.diff(time), 0)
+    nremoved = _mask.sum()
+    if nremoved > 0:
+        logging.debug(f"Removed {nremoved} profiles (duplicate timestamps)")
+    return np.logical_not( np.insert(_mask, 0, False))

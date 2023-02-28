@@ -9,6 +9,7 @@ import urllib3
 from haloreader.halo import HaloBg
 from haloreader.read import read, read_bg
 from haloreader.scantype import ScanType
+from haloreader.exceptions import MergeError
 
 
 class Session(requests.Session):
@@ -18,6 +19,14 @@ class Session(requests.Session):
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self.mount("https://", adapter)
         self.url = "https://cloudnet.fmi.fi/api/raw-files"
+
+    def get_all_record(self) -> list:
+        return self.get(
+            self.url,
+            params={
+                "instrument": "halo-doppler-lidar",
+            },
+        ).json()
 
     def get_records(
         self,
@@ -117,7 +126,15 @@ class CloudnetDataset:
                 if records_bg is not None
                 else []
             )
-            yield date, read(file_paths_halo), read_bg(file_paths_bg)
+            try:
+                halo = read(file_paths_halo)
+            except ValueError:
+                halo = None
+            try:
+                halobg = read_bg(file_paths_bg)
+            except ValueError:
+                halobg = None
+            yield date, halo , halobg
 
 
 class CloudnetBackgroundDataset:
@@ -144,7 +161,12 @@ class CloudnetBackgroundDataset:
             file_paths_bg = [
                 _get_file(self.root, self.session, r) for r in records
             ]
-            yield date, read_bg(file_paths_bg)
+            try:
+                halobg = read_bg(file_paths_bg)
+            except MergeError as err:
+                logging.warning("Skipping %s (%s)", date, str(err))
+                continue
+            yield date, halobg
 
 
 def _get_file(root: str, session: Session, record: dict) -> pathlib.Path:

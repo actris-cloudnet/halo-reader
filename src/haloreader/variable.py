@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
+from pdb import set_trace as db
 from typing import Any, TypeAlias, TypeGuard
 
 import netCDF4
@@ -63,9 +64,7 @@ class Variable:
             else var.standard_name,
             long_name=long_name if long_name is not None else var.long_name,
             units=units if units is not None else var.units,
-            dimensions=dimensions
-            if dimensions is not None
-            else var.dimensions,
+            dimensions=dimensions if dimensions is not None else var.dimensions,
             data=data,
         )
 
@@ -103,9 +102,7 @@ class Variable:
             raise NotImplementedError
 
 
-def _plot_intensity(  # type: ignore[no-any-unimported]
-    var: Variable, ax: Axes
-) -> None:
+def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
     vdelta = 1e-3
     vmin, vmax = (1 - vdelta, 1 + vdelta)
     if not isinstance(var.data, np.ndarray):

@@ -19,22 +19,21 @@ def threshold_cloudmask(
     median_filter_threshold: float = 1.003,
     gaussian_threshold: float = 0.15,
 ) -> np.ndarray:
-    raw_mask = intensity.data > raw_threshold
+    intensity_median_normalised = (
+        intensity.data / np.median(intensity.data, axis=1)[:, np.newaxis]
+    )
+    raw_mask = intensity_median_normalised > raw_threshold
     med_mask = (
-        medfilt2d(intensity.data, kernel_size=5) > median_filter_threshold
+        medfilt2d(intensity_median_normalised, kernel_size=5) > median_filter_threshold
     )
     raw_or_med_mask = raw_mask | med_mask
-    gaussian = gaussian_filter(
-        raw_or_med_mask.astype(float), sigma=8, radius=16
-    )
+    gaussian = gaussian_filter(raw_or_med_mask.astype(float), sigma=8, radius=16)
     gaussian_mask = np.zeros_like(raw_or_med_mask)
     gaussian_mask[gaussian > gaussian_threshold] = True
     return raw_or_med_mask | gaussian_mask
 
 
-def snr_fit_fast(
-    intensity: Variable, cloudmask: np.ndarray, ax=None
-) -> Variable:
+def snr_fit_fast(intensity: Variable, cloudmask: np.ndarray, ax=None) -> Variable:
     _mask = cloudmask.copy()
     _mask[:, :3] = True  # ignore first three gates
     _range = np.arange(intensity.data.shape[1], dtype=intensity.data.dtype)
@@ -63,9 +62,7 @@ def snr_fit(intensity: Variable, mask: np.ndarray) -> Variable:
     writer = Writer()
     intensity_corrected = intensity.data.copy()
     N = len(intensity.data)
-    for i, (profile, _mask) in enumerate(
-        zip(intensity.data, np.logical_not(mask))
-    ):
+    for i, (profile, _mask) in enumerate(zip(intensity.data, np.logical_not(mask))):
         lr = linear_model.LinearRegression()
         huber = linear_model.HuberRegressor(
             epsilon=1.35, max_iter=1000, alpha=0.0001, tol=1e-03
@@ -86,7 +83,7 @@ def snr_fit(intensity: Variable, mask: np.ndarray) -> Variable:
 
 
 def correct_background(
-    halo: Halo, halobg: HaloBg, p_amp: Variable, p_amp_normalised: bool
+    halo: Halo, halobg: HaloBg, p_amp: Variable, fit_info: dict
 ) -> Variable:
     if not (
         isinstance(halo.intensity.data, np.ndarray)
@@ -96,17 +93,20 @@ def correct_background(
         and isinstance(p_amp.data, np.ndarray)
     ):
         raise TypeError
-    if p_amp_normalised:
-        nscale = halobg.background.data.sum(axis=1)
-    else:
-        nscale = np.ones_like(halobg.background.data[:, 0])
-
+    nscale = halobg.background.data.sum(axis=1)
     _p_amp_scaled = nscale[:, np.newaxis] * p_amp.data[np.newaxis, :]
     background_shifted = Variable.like(
         halobg.background,
         data=halobg.background.data - _p_amp_scaled,
     )
     _background_fit = _linear_fit(background_shifted)
+    residual = background_shifted.data - _background_fit.data
+    if "residuals" not in fit_info:
+        fit_info["residuals"] = residual
+    else:
+        fit_info["residuals"] = np.concatenate(
+            (fit_info["residuals"], residual), axis=0
+        )
     i2b = _previous_measurement_map(halo.time.data, halobg.time.data)
     bg_mask = np.not_equal(i2b, None)
     if not np.all(bg_mask):
@@ -116,17 +116,11 @@ def correct_background(
         )
     i2b = i2b[bg_mask].astype(int)
     p_amp_scaled = _p_amp_scaled[i2b]
-    intensity = Variable.like(
-        halo.intensity, data=halo.intensity.data[bg_mask]
-    )
-    background = Variable.like(
-        halobg.background, data=halobg.background.data[i2b]
-    )
+    intensity = Variable.like(halo.intensity, data=halo.intensity.data[bg_mask])
+    background = Variable.like(halobg.background, data=halobg.background.data[i2b])
     if not isinstance(_background_fit.data, np.ndarray):
         raise TypeError
-    background_fit = Variable.like(
-        _background_fit, data=_background_fit.data[i2b]
-    )
+    background_fit = Variable.like(_background_fit, data=_background_fit.data[i2b])
     if not (
         isinstance(background.data, np.ndarray)
         and isinstance(intensity.data, np.ndarray)
@@ -135,9 +129,7 @@ def correct_background(
     return Variable.like(
         intensity,
         name="intensity_corrected_step1",
-        data=intensity.data
-        * background.data
-        / (p_amp_scaled + background_fit.data),
+        data=intensity.data * background.data / (p_amp_scaled + background_fit.data),
     )
 
 
@@ -151,9 +143,7 @@ def _linear_fit(background: Variable) -> Variable:
     A_inv = np.linalg.pinv(A[r:])
     x = A_inv @ background.data.T[r:]
     bg_fit = A @ x
-    return Variable(
-        name="background_fit", dimensions=("time", "range"), data=bg_fit.T
-    )
+    return Variable(name="background_fit", dimensions=("time", "range"), data=bg_fit.T)
 
 
 def _previous_measurement_map(a: np.ndarray, b: np.ndarray) -> np.ndarray:

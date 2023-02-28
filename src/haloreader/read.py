@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
+from pdb import set_trace as db
 from typing import Sequence
 
 import lark
@@ -12,6 +13,7 @@ import numpy.typing as npt
 from haloreader.background_reader import read_background
 from haloreader.data_reader import read_data
 from haloreader.exceptions import BackgroundReadError
+from haloreader.exceptions import MergeError
 from haloreader.halo import Halo, HaloBg
 from haloreader.metadata import Metadata
 from haloreader.variable import Variable
@@ -62,6 +64,7 @@ def read_bg(
             data=np.arange(background.data.shape[1]),
         )
         halobgs.append(HaloBg(time=time, background=background, range=range_))
+
     return HaloBg.merge(halobgs)
 
 
@@ -119,9 +122,7 @@ def _decimaltime2timestamp(time: Variable, metadata: Metadata) -> Variable:
         or metadata.start_time.data.size != 1
     ):
         raise TypeError
-    t_start = (
-        np.floor(metadata.start_time.data / day_in_seconds) * day_in_seconds
-    )
+    t_start = np.floor(metadata.start_time.data / day_in_seconds) * day_in_seconds
     if not isinstance(time.data, np.ndarray):
         raise TypeError
     time_ = t_start + hour_in_seconds * time.data
@@ -129,9 +130,7 @@ def _decimaltime2timestamp(time: Variable, metadata: Metadata) -> Variable:
     while i_day_changed >= 0:
         time_[i_day_changed:] += day_in_seconds
         i_day_changed = _find_change_of_day(i_day_changed, time_)
-    return Variable(
-        name="time", data=time_, dimensions=("time",), units="unix time"
-    )
+    return Variable(name="time", data=time_, dimensions=("time",), units="unix time")
 
 
 def _find_change_of_day(start: int, time: npt.NDArray) -> int:
