@@ -64,7 +64,6 @@ def read_bg(
             data=np.arange(background.data.shape[1]),
         )
         halobgs.append(HaloBg(time=time, background=background, range=range_))
-
     return HaloBg.merge(halobgs)
 
 

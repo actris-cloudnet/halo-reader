@@ -79,9 +79,7 @@ class HeaderTransformer(lark.Transformer):
         val, *_ = children
         return Variable(name="resolution", data=val, units="m/s")
 
-    def end_of_header_with_instrument_spectral_width(
-        self, children: list
-    ) -> Variable:
+    def end_of_header_with_instrument_spectral_width(self, children: list) -> Variable:
         val, *_ = children
         return Variable(name="instrument_spectral_width", data=val)
 
@@ -91,9 +89,7 @@ class HeaderTransformer(lark.Transformer):
             r"(\d{4})(\d{2})(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{2})", time_str
         )
         if match_ is None:
-            raise NotImplementedError(
-                f"Parse for fmt {time_str} not implemented yet"
-            )
+            raise NotImplementedError(f"Parse for fmt {time_str} not implemented yet")
         return {
             "start_time": Variable(
                 name="start_time",
@@ -120,9 +116,7 @@ class HeaderTransformer(lark.Transformer):
         func, *_ = children
         return {"range_func": func}
 
-    def RANGE_OF_MEASUREMENT(
-        self, _: Any
-    ) -> Callable[[Variable, Variable], Variable]:
+    def RANGE_OF_MEASUREMENT(self, _: Any) -> Callable[[Variable, Variable], Variable]:
         return range_func
 
     time_dimension_variables = lambda self, vars: {"time_vars": vars}
@@ -133,9 +127,7 @@ class HeaderTransformer(lark.Transformer):
             raise TypeError
         return var
 
-    time_range_dimension_variables = lambda self, vars: {
-        "time_range_vars": vars
-    }
+    time_range_dimension_variables = lambda self, vars: {"time_range_vars": vars}
 
     def time_range_dimension_variable(self, children: list) -> Variable:
         var, *_ = children
@@ -162,17 +154,21 @@ class HeaderTransformer(lark.Transformer):
         name="roll", units="degrees", dimensions=("time",)
     )
 
-    RANGE_GATE = lambda self, _: Variable(
-        name="range", dimensions=("time", "range")
-    )
+    RANGE_GATE = lambda self, _: Variable(name="range", dimensions=("time", "range"))
     DOPPLER = lambda self, _: Variable(
         name="doppler_velocity", units="m/s", dimensions=("time", "range")
     )
     INTENSITY = lambda self, _: Variable(
-        name="intensity", units="snr+1", dimensions=("time", "range")
+        name="intensity_raw",
+        standard_name="raw signal",
+        units="snr+1",
+        dimensions=("time", "range"),
     )
     BETA = lambda self, _: Variable(
-        name="beta", units="m-1 sr-1", dimensions=("time", "range")
+        name="beta",
+        standard_name="attenuated backscatter",
+        units="m-1 sr-1",
+        dimensions=("time", "range"),
     )
     SPECTRAL_WIDTH = lambda self, _: Variable(
         name="spectral_width", dimensions=("time", "range")
@@ -193,9 +189,7 @@ class HeaderTransformer(lark.Transformer):
     USER2_STEPPED = lambda self, _: ScanType.USER2_STEPPED
     USER2_CSM = lambda self, _: ScanType.USER2_CSM
     WIND_PROFILE = lambda self, _: ScanType.WIND_PROFILE
-    WIND_PROFILE_OVERLAPPING = (
-        lambda self, _: ScanType.WIND_PROFILE_OVERLAPPING
-    )
+    WIND_PROFILE_OVERLAPPING = lambda self, _: ScanType.WIND_PROFILE_OVERLAPPING
     RHI = lambda self, _: ScanType.RHI
 
     STRING = lambda self, _: _.value

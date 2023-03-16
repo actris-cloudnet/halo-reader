@@ -21,67 +21,27 @@ Todo:
 
 ```bash
 # Requires python >= 3.10
-
-# Install globally
-python3 -m pip install halo-reader
-
-# Or using virtual environment
+git clone -b background-correction https://github.com/actris-cloudnet/halo-reader.git
+cd halo-reader
+# create a virtual environment
 python3 -m venv env
+# activate the virtual environment
 source env/bin/activate
-pip install halo-reader
+# install
+pip install .
 ```
 
 ## Usage
 
-### Convert raw files to netcdf
-
 ```bash
-halo2nc --help
-halo2nc raw_file.hpl [another_raw_file.hpl ...] -o output.nc
-
-# Background files
-halobg2nc --help
-halobg2nc Background_TIMESTAMP.txt [another_background_file.txt ...] -o output.nc
-# TIMESTAMP format: ddmmyy-HHMMSS
-```
-
-### Visualise raw files directly from Cloudnet
-
-```python
-from halodata.datasets import CloudnetData, CloudnetDataset
-from haloboard.writer import Writer
-import matplotlib.pyplot as plt
-
-import logging
-logging.basicConfig(level=logging.INFO)
-
-dataset = CloudnetDataset(
-    root="data",
-    site="eriswil",
-    scantype="stare",
-    date_from="2023-01-01",
-    date_to="2023-01-03",
-)
-
-
-writer = Writer()
-for i, (date, halo, bg) in enumerate(dataset):
-    fig, ax = plt.subplots(2,1, figsize=(18, 10))
-    halo.plot(title=f"{date} intensity", ax = ax[0])
-    bg.plot(title="background", ax = ax[1])
-    writer.add_figure(f"halo-{date}", fig)
-```
-This downloads raw halo files into `data` folder,
-and creates instensity and background plots into a `vis` folder.
-
-Browse visualisations at `http://127.0.0.1:5000/`
-```bash
+# First activate the virtual environment, then
+haloreader --help
+haloreader from_raw --help
+haloreader from_cloudnet --help
+# Visualise
 haloboard
+# open your browser at localhost:5000
 ```
-
-
-
-
 
 ## License
 

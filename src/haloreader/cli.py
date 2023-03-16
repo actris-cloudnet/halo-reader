@@ -1,55 +1,115 @@
 import argparse
+import datetime
+import logging
 import sys
 from pathlib import Path
+from pdb import set_trace as db
 
+import matplotlib.pyplot as plt
+
+from haloboard.writer import Writer
+from halodata.datasets import get_halo_cloudnet
 from haloreader.read import read, read_bg
 
-
-def halo2nc() -> None:
-    args = _halo2nc_parse_args()
-    halo = read(src_files=args.src)
-    if halo is not None:
-        nc_buff = halo.to_nc()
-        if args.output is not None:
-            with args.output.open("wb") as f:
-                f.write(nc_buff)
-        else:
-            sys.stdout.buffer.write(nc_buff)
+log = logging.getLogger(__name__)
 
 
-def _halo2nc_parse_args() -> argparse.Namespace:
+def halo_reader() -> None:
+    logging.basicConfig(level=logging.INFO)
+    args = _haloreader_args()
+    if args.subcommand == "from_cloudnet":
+        _from_cloudnet(args)
+    elif args.subcommand == "from_raw":
+        _from_raw(args)
+    else:
+        NotImplementedError()
+
+
+def _from_cloudnet(args) -> None:
+    halo, halobg = get_halo_cloudnet(site=args.site, date=args.date)
+    if halo is None:
+        log.warning("No data from %s on %s", args.site, args.date)
+        return
+    halo.correct_background(halobg)
+    nc_buff = halo.to_nc()
+    with open(f"halo_{args.site}_{args.date}.nc", "wb") as f:
+        f.write(nc_buff)
+    if args.plot:
+        writer = Writer()
+        fig, ax = plt.subplots(3, 1, figsize=(24, 16))
+        halo.intensity_raw.plot(ax[0])
+        halo.doppler_velocity.plot(ax[1])
+        halo.intensity.plot(ax[2])
+        writer.add_figure(f"halo_{args.site}_{args.date}", fig)
+
+
+def _from_raw(args) -> None:
+    halo_src = [src for src in args.src if src.name.endswith(".hpl")]
+    bg_src = [
+        src
+        for src in args.src
+        if src.name.startswith("Background") and src.name.endswith(".txt")
+    ]
+    halo = read(halo_src)
+    halobg = read_bg(bg_src)
+    if halobg:
+        if halobg.background.data.shape[0] < 300:
+            log.warning(
+                "Few (< 300) background profiles might lead to incorrect background correction"
+            )
+        halo.correct_background(halobg)
+    else:
+        log.warning("No background files, skipping background correction")
+    nc_buff = halo.to_nc()
+    with args.output.open("wb") as f:
+        f.write(nc_buff)
+    if args.plot:
+        writer = Writer()
+        fig, ax = plt.subplots(3, 1, figsize=(24, 16))
+        halo.intensity_raw.plot(ax[0])
+        halo.doppler_velocity.plot(ax[1])
+        if halo.intensity:
+            halo.intensity.plot(ax[2])
+        writer.add_figure(f"{args.output.stem}", fig)
+
+
+def _haloreader_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "src", type=Path, nargs="*", default=[], help="raw hpl file"
+    subparsers = parser.add_subparsers(
+        title="subcommands", dest="subcommand", required=True
     )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=Path,
+    _from_cloudnet_args(
+        subparsers.add_parser(
+            "from_cloudnet", help="Download files directly from cloudnet."
+        )
     )
+    _from_raw_args(
+        subparsers.add_parser(
+            "from_raw", help="Read and background correct raw files into netCDF"
+        )
+    )
+
     return parser.parse_args()
 
 
-def halobg2nc() -> None:
-    args = _halobg2nc_parse_args()
-    halobg = read_bg(src_files=args.src)
-    if halobg is not None:
-        nc_buff = halobg.to_nc()
-        if args.output is not None:
-            with args.output.open("wb") as f:
-                f.write(nc_buff)
-        else:
-            sys.stdout.buffer.write(nc_buff)
-
-
-def _halobg2nc_parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+def _from_cloudnet_args(parser):
+    parser.add_argument("-p", "--plot", action="store_true")
+    parser.add_argument("-s", "--site", type=str, default="warsaw")
     parser.add_argument(
-        "src", type=Path, nargs="*", default=[], help="background files"
+        "-d",
+        "--date",
+        type=datetime.date.fromisoformat,
+        default=datetime.date.today() - datetime.timedelta(days=1),
     )
+
+
+def _from_raw_args(parser):
+    parser.add_argument("-p", "--plot", action="store_true")
     parser.add_argument(
-        "-o",
-        "--output",
+        "src",
         type=Path,
+        nargs="*",
+        default=[],
+        help="Raw and background files in an arbitrary order",
     )
-    return parser.parse_args()
+    parser.add_argument("-o", "--output", type=Path, required=True)

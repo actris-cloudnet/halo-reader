@@ -20,6 +20,7 @@ class Variable:
     name: str
     standard_name: str | None = None
     long_name: str | None = None
+    comment: str | None = None
     units: str | None = None
     dimensions: tuple[str, ...] | None = None
     data: DataType = None
@@ -38,12 +39,11 @@ class Variable:
             if not _dimension_exists(nc, dim):
                 nc.createDimension(dim, None)
         nc_var = nc.createVariable(self.name, nc_dtype, dimensions, zlib=True)
-        nc_var.standard_name = (
-            self.standard_name if self.standard_name is not None else ""
-        )
-        nc_var.long_name = self.long_name if self.long_name is not None else ""
-        nc_var.units = self.units if self.units is not None else ""
         nc_var[:] = self.data if self.data is not None else []
+        for attr_name in ["standard_name", "long_name", "comment", "units"]:
+            attr_val = getattr(self, attr_name)
+            if attr_val:
+                setattr(nc_var, attr_name, attr_val)
 
     @classmethod
     def like(
@@ -53,6 +53,7 @@ class Variable:
         name: str | None = None,
         standard_name: str | None = None,
         long_name: str | None = None,
+        comment: str | None = None,
         units: str | None = None,
         dimensions: tuple[str, ...] | None = None,
     ) -> Variable:
@@ -63,10 +64,17 @@ class Variable:
             if standard_name is not None
             else var.standard_name,
             long_name=long_name if long_name is not None else var.long_name,
+            comment=comment if comment is not None else var.comment,
             units=units if units is not None else var.units,
             dimensions=dimensions if dimensions is not None else var.dimensions,
             data=data,
         )
+
+    def take(self, index_array, axis=0):
+        index = tuple(
+            [index_array if axis == i else slice(None) for i in range(self.data.ndim)]
+        )
+        return Variable.like(self, data=self.data[index])
 
     @classmethod
     def merge(cls, vars_: list[Variable]) -> Variable | None:
@@ -98,8 +106,12 @@ class Variable:
             _plot_intensity(self, ax)
         elif "background" in self.name:
             _plot_background(self, ax)
+        elif "doppler_velocity" in self.name:
+            _plot_doppler_velocity(self, ax)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Plotting not implemented for variable {self.name}"
+            )
 
 
 def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
@@ -113,6 +125,23 @@ def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-uni
         vmin=vmin,
         vmax=vmax,
         aspect="auto",
+        interpolation="none",
+    )
+    ax.set_title(var.name)
+
+
+def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    if not isinstance(var.data, np.ndarray):
+        raise TypeError
+    vdelta = 10
+    vmin, vmax = (-vdelta, vdelta)
+    ax.imshow(
+        var.data.T,
+        origin="lower",
+        aspect="auto",
+        cmap = "bwr",
+        vmin=vmin,
+        vmax=vmax,
         interpolation="none",
     )
     ax.set_title(var.name)

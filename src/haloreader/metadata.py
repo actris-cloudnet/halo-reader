@@ -6,9 +6,12 @@ from typing import Any, TypeGuard
 import netCDF4
 
 from haloreader.type_guards import is_none_list
+import haloreader
 
 from .attribute import Attribute
 from .variable import Variable
+from haloreader.version import __version__ as pkgversion
+from haloreader import __name__ as pkgname
 
 
 @dataclass(slots=True)
@@ -26,9 +29,11 @@ class Metadata:
     nrays: Variable | None = None
     nwaypoints: Variable | None = None
     instrument_spectral_width: Variable | None = None
+    note: Attribute = Attribute(name = "note", value = f"processed with {pkgname} version {pkgversion}")
 
     def nc_write(self, nc: netCDF4.Dataset) -> None:
-        nc_meta = nc.createGroup("metadata")
+        #nc_meta = nc.createGroup("metadata")
+        nc_meta = nc
         for attr_name in self.__dataclass_fields__.keys():
             metadata_attr = getattr(self, attr_name)
             if metadata_attr is not None:

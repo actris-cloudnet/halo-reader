@@ -2,6 +2,10 @@
 src/haloreader/**/*.c
 src/haloreader/**/*.html
 clu-tests/
+deprecated/
+cache/
+vis/
+*.nc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

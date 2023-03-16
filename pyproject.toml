@@ -56,7 +56,7 @@ dev = [
 
 [project.scripts]
 halo2nc = "haloreader.cli:halo2nc"
-halobg2nc = "haloreader.cli:halobg2nc"
+haloreader = "haloreader.cli:halo_reader"
 haloboard = "haloboard.app:run"
 
 [tool.setuptools.packages.find]

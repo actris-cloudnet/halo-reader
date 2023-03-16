@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pdb import set_trace as db
 from typing import Any
@@ -7,8 +8,9 @@ from typing import Any
 import matplotlib.pyplot as plt
 import netCDF4
 import numpy as np
-import logging
 
+import haloreader.background_correction as bgc
+from haloreader.background_correction import background_measurement_correction
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_none_list
 from haloreader.variable import Variable
@@ -24,9 +26,10 @@ class Halo:
     pitch: Variable
     roll: Variable
     doppler_velocity: Variable
-    intensity: Variable
+    intensity_raw: Variable
     beta: Variable
     spectral_width: Variable | None = None
+    intensity: Variable | None = None
 
     def to_nc(self) -> memoryview:
         nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
@@ -48,8 +51,10 @@ class Halo:
         if len(halos) == 1:
             return halos[0]
         halo_attrs: dict[str, Any] = {}
+        sorted_halos = _sorted_halo_list(halos)
+
         for attr_name in cls.__dataclass_fields__.keys():
-            halo_attr_list = [getattr(h, attr_name) for h in halos]
+            halo_attr_list = [getattr(h, attr_name) for h in sorted_halos]
             if Metadata.is_metadata_list(halo_attr_list):
                 halo_attrs[attr_name] = Metadata.merge(halo_attr_list)
             elif Variable.is_variable_list(halo_attr_list):
@@ -85,6 +90,27 @@ class Halo:
                 )
                 halo_attr.data = halo_attr.data[index]
 
+    def correct_background(self, halobg: HaloBg) -> None:
+        halobg_sliced = halobg.slice_range(len(self.range.data))
+        p_amp = halobg_sliced.amplifier_noise()
+        intensity_step1 = bgc.background_measurement_correction(
+            self.time, self.intensity_raw, halobg_sliced.time, halobg_sliced.background, p_amp
+        )
+        cloudmask = bgc.threshold_cloudmask(intensity_step1)
+        self.intensity = bgc.snr_correction(intensity_step1, cloudmask)
+
+
+def _sorted_halo_list_key(halo: Halo):
+    if halo.metadata.start_time.units != "unix time":
+        raise ValueError
+    if len(halo.metadata.start_time.data) != 1:
+        raise ValueError
+    return halo.metadata.start_time.data[0]
+
+
+def _sorted_halo_list(halos: list[Halo]) -> list[Halo]:
+    return sorted(halos, key=_sorted_halo_list_key)
+
 
 @dataclass(slots=True)
 class HaloBg:
@@ -108,8 +134,13 @@ class HaloBg:
     def slice_range(self, slice_: int | slice) -> None:
         if isinstance(slice_, int):
             slice_ = slice(slice_)
-        self.range.data = self.range.data[slice_]
-        self.background.data = self.background.data[:,slice_]
+        return HaloBg(
+            time=Variable.like(self.time, data=self.time.data),
+            range=Variable.like(self.range, data=self.range.data[slice_]),
+            background=Variable.like(
+                self.background, data=self.background.data[:, slice_]
+            ),
+        )
 
     @classmethod
     def merge(cls, halobgs: list[HaloBg]) -> HaloBg | None:
@@ -117,9 +148,15 @@ class HaloBg:
             return None
         if len(halobgs) == 1:
             return halobgs[0]
+        nranges_med = np.median([hbg.range.data.shape[0] for hbg in halobgs]).astype(int)
+        halobgs_filtered = [hbg for hbg in halobgs if hbg.range.data.shape[0] == nranges_med]
+        nignored = len(halobgs) - len(halobgs_filtered)
+        if nignored > 0:
+            logging.warning(f"Ignoring %d/%d background profiles (mismatching number of range gates)", nignored, len(halobgs))
         halobg_attrs: dict[str, Any] = {}
+        sorted_halobgs = _sorted_halobg_list(halobgs_filtered)
         for attr_name in cls.__dataclass_fields__.keys():
-            halobg_attr_list = [getattr(h, attr_name) for h in halobgs]
+            halobg_attr_list = [getattr(h, attr_name) for h in sorted_halobgs]
             if Variable.is_variable_list(halobg_attr_list):
                 halobg_attrs[attr_name] = Variable.merge(halobg_attr_list)
             elif is_none_list(halobg_attr_list):
@@ -137,47 +174,30 @@ class HaloBg:
     def is_bgfilename(cls, filename: str) -> bool:
         return filename.lower().startswith("background_")
 
-    def p_amplifier(self, normalise: bool = False) -> Variable:
-        if normalise:
-            _sum_over_gates = self.background.data.sum(axis=1)
-            _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
-            return Variable(
-                name="p_amp",
-                long_name=(
-                    "Mean of normalised background over time. "
-                    "Profiles are normalised with sum over gates"
-                ),
-                dimensions=("range",),
-                data=_normalised_bg.mean(axis=0),
-            )
-        else:
-            return Variable(
-                name="p_amp",
-                long_name="Mean of background over time",
-                dimensions=("range",),
-                data=self.background.data.mean(axis=0),
-            )
+    def amplifier_noise(self) -> Variable:
+        _sum_over_gates = self.background.data.sum(axis=1)
+        _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
+        return Variable(
+            name="p_amp",
+            long_name=(
+                "Mean of normalised background over time. "
+                "Profiles are normalised with sum over gates"
+            ),
+            dimensions=("range",),
+            data=_normalised_bg.mean(axis=0),
+        )
 
-    def p_amplifier_std(self, normalise: bool = False) -> Variable:
-        if normalise:
-            _sum_over_gates = self.background.data.sum(axis=1)
-            _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
-            return Variable(
-                name="p_amp_std",
-                long_name=(
-                    "Std of normalised background over time. "
-                    "Profiles are normalised with sum over gates"
-                ),
-                dimensions=("range",),
-                data=_normalised_bg.std(axis=0),
-            )
-        else:
-            return Variable(
-                name="p_amp_std",
-                long_name="Std of background over time",
-                dimensions=("range",),
-                data=self.background.data.std(axis=0),
-            )
+
+def _sorted_halobg_list_key(halobg: HaloBg):
+    if halobg.time.units != "unix time":
+        raise ValueError
+    if len(halobg.time.data) != 1:
+        raise ValueError
+    return halobg.time.data[0]
+
+
+def _sorted_halobg_list(halos: list[HaloBg]) -> list[HaloBg]:
+    return sorted(halos, key=_sorted_halobg_list_key)
 
 
 def _is_increasing(time: np.ndarray) -> bool:
@@ -189,4 +209,4 @@ def _duplicate_time_mask(time: np.ndarray) -> np.ndarray:
     nremoved = _mask.sum()
     if nremoved > 0:
         logging.debug(f"Removed {nremoved} profiles (duplicate timestamps)")
-    return np.logical_not( np.insert(_mask, 0, False))
+    return np.logical_not(np.insert(_mask, 0, False))
