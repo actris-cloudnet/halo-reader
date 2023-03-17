@@ -82,6 +82,9 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = "matplotlib.*"
 ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "scipy.*"
+ignore_missing_imports = true
 
 [tool.black]
 line-length = 88
@@ -94,7 +97,7 @@ line_length = 88
 [tool.pylint]
 ignore-patterns = "test_.*\\.py"
 max-line-length = 88
-good-names = ["i", "j", "k", "v", "f", "nc", "ax"]
+good-names = ["i", "j", "k", "v", "f", "nc", "ax", "bg", "x", "y"]
 disable = [
   "missing-module-docstring",
   "missing-class-docstring",

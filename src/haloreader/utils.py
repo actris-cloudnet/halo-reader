@@ -1,18 +1,22 @@
 import time
 from datetime import datetime
+from types import TracebackType
 
 
 class Timer:
     def __init__(self, name: str = "timer"):
         self.name = name
+        self.start = 0.0
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.start = time.perf_counter()
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self, exc_type: type, exc_value: AttributeError, exc_traceback: TracebackType
+    ) -> None:
         end = time.perf_counter()
-        t = end - self.start
-        print(f"{self.name}: {t}")
+        runtime = end - self.start
+        print(f"{self.name}: {runtime}")
 
 
 def two_column_format(key: str, vals: list, left_width: int) -> str:

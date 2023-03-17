@@ -31,6 +31,11 @@ source env/bin/activate
 pip install .
 ```
 
+### Notes for Windows Subsystem for Linux (WSL) users
+You can get python3.10 >= by installing [Ubuntu 22.04 from microsoft store](https://apps.microsoft.com/store/detail/ubuntu-22042-lts/9PN20MSR04DW).
+In WSL, you may need to install `build-essential` and `python3.10-dev` before installing `halo-reader`.
+
+
 ## Usage
 
 ```bash

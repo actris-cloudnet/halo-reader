@@ -3,7 +3,6 @@ import re
 from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
-from pdb import set_trace as db
 from typing import Sequence
 
 import lark
@@ -13,7 +12,6 @@ import numpy.typing as npt
 from haloreader.background_reader import read_background
 from haloreader.data_reader import read_data
 from haloreader.exceptions import BackgroundReadError
-from haloreader.exceptions import MergeError
 from haloreader.halo import Halo, HaloBg
 from haloreader.metadata import Metadata
 from haloreader.variable import Variable

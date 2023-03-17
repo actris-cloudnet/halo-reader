@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
-from pdb import set_trace as db
-from typing import Any, TypeAlias, TypeGuard
+from typing import Any, Protocol, TypeAlias, TypeGuard, runtime_checkable
 
 import netCDF4
 import numpy as np
 from matplotlib.axes import Axes
 
 from haloreader.exceptions import MergeError, NetCDFWriteError
-from haloreader.type_guards import is_float_list, is_int_list, is_ndarray_list
+from haloreader.type_guards import (
+    is_fancy_index,
+    is_float_list,
+    is_int_list,
+    is_ndarray,
+    is_ndarray_list,
+)
 
 DataType: TypeAlias = np.ndarray | int | float | None
 
@@ -70,10 +74,14 @@ class Variable:
             data=data,
         )
 
-    def take(self, index_array, axis=0):
+    def take(self, index_list: list[int], axis: int = 0) -> Variable:
+        if not is_ndarray(self.data):
+            raise TypeError
         index = tuple(
-            [index_array if axis == i else slice(None) for i in range(self.data.ndim)]
+            (index_list if axis == i else slice(None) for i in range(self.data.ndim))
         )
+        if not is_fancy_index(index):
+            raise TypeError
         return Variable.like(self, data=self.data[index])
 
     @classmethod
@@ -114,6 +122,14 @@ class Variable:
             )
 
 
+@runtime_checkable
+class VariableWithNumpyData(Protocol):
+    data: np.ndarray
+    name: str
+    units: str
+    dimensions: tuple[str, ...]
+
+
 def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
     vdelta = 1e-3
     vmin, vmax = (1 - vdelta, 1 + vdelta)
@@ -130,7 +146,9 @@ def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-uni
     ax.set_title(var.name)
 
 
-def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+def _plot_doppler_velocity(  # type: ignore[no-any-unimported]
+    var: Variable, ax: Axes
+) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     vdelta = 10
@@ -139,7 +157,7 @@ def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:  # type: ignore[no-
         var.data.T,
         origin="lower",
         aspect="auto",
-        cmap = "bwr",
+        cmap="bwr",
         vmin=vmin,
         vmax=vmax,
         interpolation="none",

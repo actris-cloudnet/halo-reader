@@ -40,9 +40,7 @@ class Attribute:
         if names_eq and values_eq:
             return attributes[0]
         if names_eq and first_attr.name == "filename":
-            return Attribute(
-                name=first_attr.name, value=_list_values(attributes)
-            )
+            return Attribute(name=first_attr.name, value=_list_values(attributes))
         raise ValueError(f"Cannot merge attribute {attributes[0].name}")
 
 

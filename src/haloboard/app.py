@@ -10,9 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 parser = argparse.ArgumentParser("haloboard")
-parser.add_argument(
-    "--dir", type=pathlib.Path, default=pathlib.Path(DEFAULT_ROOT)
-)
+parser.add_argument("--dir", type=pathlib.Path, default=pathlib.Path(DEFAULT_ROOT))
 args = parser.parse_args()
 app = flask.Flask(
     __name__,
@@ -42,9 +40,7 @@ def serve_files(name: str) -> flask.wrappers.Response:
 
 @app.route("/static/<path:name>")
 def serve_static(name: str) -> flask.wrappers.Response:
-    return flask.send_from_directory(
-        pathlib.Path(app.root_path, "static"), name
-    )
+    return flask.send_from_directory(pathlib.Path(app.root_path, "static"), name)
 
 
 def run() -> None:

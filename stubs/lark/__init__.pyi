@@ -8,9 +8,7 @@ from haloreader.variable import Variable
 class Transformer: ...
 
 class Lark:
-    def __init__(
-        self, grammar: str, transformer: HeaderTransformer, parser: str
-    ): ...
+    def __init__(self, grammar: str, transformer: HeaderTransformer, parser: str): ...
     def parse(
         self, string: str
     ) -> tuple[

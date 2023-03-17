@@ -1,15 +1,14 @@
 import argparse
 import datetime
 import logging
-import sys
 from pathlib import Path
-from pdb import set_trace as db
 
 import matplotlib.pyplot as plt
 
 from haloboard.writer import Writer
 from halodata.datasets import get_halo_cloudnet
 from haloreader.read import read, read_bg
+from haloreader.type_guards import is_ndarray
 
 log = logging.getLogger(__name__)
 
@@ -22,14 +21,16 @@ def halo_reader() -> None:
     elif args.subcommand == "from_raw":
         _from_raw(args)
     else:
-        NotImplementedError()
+        raise NotImplementedError
 
 
-def _from_cloudnet(args) -> None:
+def _from_cloudnet(args: argparse.Namespace) -> None:
     halo, halobg = get_halo_cloudnet(site=args.site, date=args.date)
     if halo is None:
         log.warning("No data from %s on %s", args.site, args.date)
         return
+    if halobg is None:
+        raise TypeError
     halo.correct_background(halobg)
     nc_buff = halo.to_nc()
     with open(f"halo_{args.site}_{args.date}.nc", "wb") as f:
@@ -39,11 +40,12 @@ def _from_cloudnet(args) -> None:
         fig, ax = plt.subplots(3, 1, figsize=(24, 16))
         halo.intensity_raw.plot(ax[0])
         halo.doppler_velocity.plot(ax[1])
-        halo.intensity.plot(ax[2])
+        if halo.intensity is not None:
+            halo.intensity.plot(ax[2])
         writer.add_figure(f"halo_{args.site}_{args.date}", fig)
 
 
-def _from_raw(args) -> None:
+def _from_raw(args: argparse.Namespace) -> None:
     halo_src = [src for src in args.src if src.name.endswith(".hpl")]
     bg_src = [
         src
@@ -51,11 +53,17 @@ def _from_raw(args) -> None:
         if src.name.startswith("Background") and src.name.endswith(".txt")
     ]
     halo = read(halo_src)
+    if halo is None:
+        log.warning("No data")
+        return
     halobg = read_bg(bg_src)
     if halobg:
+        if not is_ndarray(halobg.background.data):
+            raise TypeError
         if halobg.background.data.shape[0] < 300:
             log.warning(
-                "Few (< 300) background profiles might lead to incorrect background correction"
+                "Few (< 300) background profiles "
+                "might lead to incorrect background correction"
             )
         halo.correct_background(halobg)
     else:
@@ -92,7 +100,7 @@ def _haloreader_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _from_cloudnet_args(parser):
+def _from_cloudnet_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-p", "--plot", action="store_true")
     parser.add_argument("-s", "--site", type=str, default="warsaw")
     parser.add_argument(
@@ -103,7 +111,7 @@ def _from_cloudnet_args(parser):
     )
 
 
-def _from_raw_args(parser):
+def _from_raw_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("-p", "--plot", action="store_true")
     parser.add_argument(
         "src",

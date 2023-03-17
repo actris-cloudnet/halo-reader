@@ -1,13 +1,28 @@
-from pdb import set_trace as db
-
 import numpy as np
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter  # mypy:
 from scipy.signal import medfilt2d
 
+from haloreader.type_guards import is_ndarray
 from haloreader.variable import Variable
 
 
-def background_measurement_correction(time, intensity, time_bg, bg, p_amp):
+def background_measurement_correction(
+    time: Variable,
+    intensity: Variable,
+    time_bg: Variable,
+    bg: Variable,
+    p_amp: Variable,
+) -> Variable:
+    if not is_ndarray(time.data):
+        raise TypeError
+    if not is_ndarray(intensity.data):
+        raise TypeError
+    if not is_ndarray(time_bg.data):
+        raise TypeError
+    if not is_ndarray(bg.data):
+        raise TypeError
+    if not is_ndarray(p_amp.data):
+        raise TypeError
     intensity_index2bg_index = _previous_measurement_map(time.data, time_bg.data)
     relevant_bg_indeces = sorted(list(set(intensity_index2bg_index)))
     relevant_bg_indeces_map = {v: i for i, v in enumerate(relevant_bg_indeces)}
@@ -15,6 +30,8 @@ def background_measurement_correction(time, intensity, time_bg, bg, p_amp):
         [relevant_bg_indeces_map[i] for i in intensity_index2bg_index]
     )
     bg_relevant = bg.take(relevant_bg_indeces)
+    if not is_ndarray(bg_relevant.data):
+        raise TypeError
     p_amp_denormalized = (
         bg_relevant.data.sum(axis=1)[:, np.newaxis] * p_amp.data[np.newaxis, :]
     )
@@ -24,10 +41,12 @@ def background_measurement_correction(time, intensity, time_bg, bg, p_amp):
         data=bg_relevant.data - p_amp_denormalized,
     )
     bg_relevant_fit = _linear_fit(background_p_amp_removed)
+    if not is_ndarray(bg_relevant_fit.data):
+        raise TypeError
     return Variable.like(
         intensity,
         name="intensity",
-        standard_name = "intensity",
+        standard_name="intensity",
         comment="background measurement corrected intensity",
         data=intensity.data
         * bg.data[intensity_index2bg_index]
@@ -81,12 +100,18 @@ def _previous_measurement_map(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.array(c, dtype=int)
 
 
-def threshold_cloudmask(
+def threshold_signalmask(
     intensity: Variable,
     raw_threshold: float = 1.008,
     median_filter_threshold: float = 1.002,
     gaussian_threshold: float = 0.02,
 ) -> np.ndarray:
+    """
+    mask = 1, if data is signal
+    mask = 0, if data is noise
+    """
+    if not is_ndarray(intensity.data):
+        raise TypeError
     intensity_median_normalised = (
         intensity.data / np.median(intensity.data, axis=1)[:, np.newaxis]
     )
@@ -98,11 +123,19 @@ def threshold_cloudmask(
     gaussian = gaussian_filter(raw_or_med_mask.astype(float), sigma=8, radius=16)
     gaussian_mask = np.zeros_like(raw_or_med_mask)
     gaussian_mask[gaussian > gaussian_threshold] = True
-    return raw_or_med_mask | gaussian_mask
+    signalmask = raw_or_med_mask | gaussian_mask
+    if not is_ndarray(signalmask):
+        raise TypeError
+    return signalmask
 
-def snr_correction(intensity: Variable, cloudmask: np.ndarray) -> Variable:
-    _mask = cloudmask.copy()
-    _mask[:, :3] = True  # ignore first three gates
+
+def snr_correction(intensity: Variable, signalmask: np.ndarray) -> Variable:
+    # pylint: disable=invalid-name
+    if not is_ndarray(intensity.data):
+        raise TypeError
+    _mask = signalmask.copy()
+    # Fit only to noise ie where signalmask is False
+    _mask[:, :3] = True  # ignore first three gates since they often containt bad data
     _range = np.arange(intensity.data.shape[1], dtype=intensity.data.dtype)
     _ones = np.ones_like(_range)
     _A = np.concatenate((_range[:, np.newaxis], _ones[:, np.newaxis]), axis=1)
@@ -119,6 +152,6 @@ def snr_correction(intensity: Variable, cloudmask: np.ndarray) -> Variable:
     return Variable.like(
         intensity,
         name="intensity",
-        comment = "noise corrected intensity with signal mask",
+        comment="noise corrected intensity with signal mask",
         data=intensity_corrected,
     )

@@ -1,17 +1,17 @@
 import datetime
-from pdb import set_trace as db
-
+import logging
+import pathlib
 from io import BytesIO
+
 import requests
 import urllib3
-import pathlib
-import logging
 
-from haloreader.read import read, read_bg
 from haloreader.halo import Halo, HaloBg
+from haloreader.read import read, read_bg
 from haloreader.scantype import ScanType
 
 log = logging.getLogger(__name__)
+
 
 class Session(requests.Session):
     def __init__(self) -> None:
@@ -24,7 +24,7 @@ class Session(requests.Session):
     def get_metadata(
         self, site: str, date_from: datetime.date, date_to: datetime.date
     ) -> list:
-        return self.get(
+        records = self.get(
             self.url,
             params={
                 "instrument": "halo-doppler-lidar",
@@ -33,23 +33,30 @@ class Session(requests.Session):
                 "dateTo": str(date_to),
             },
         ).json()
+        if not isinstance(records, list):
+            raise TypeError
+        return records
 
 
 def get_halo_cloudnet(
     site: str, date: datetime.date, scantype: ScanType = ScanType.STARE
-):
+) -> tuple[Halo | None, HaloBg | None]:
     ses = Session()
     records = ses.get_metadata(
         site, date_from=date - datetime.timedelta(days=60), date_to=date
     )
     bg_records = [r for r in records if HaloBg.is_bgfilename(r["filename"])]
     halo_records = [
-        r for r in records if r["measurementDate"] == date.isoformat() and ScanType.from_filename(r["filename"]) == scantype
+        r
+        for r in records
+        if r["measurementDate"] == date.isoformat()
+        and ScanType.from_filename(r["filename"]) == scantype
     ]
-    halo_bytes = [_recor2bytes(r,ses) for r in halo_records]
-    bg_bytes = [_recor2bytes(r,ses) for r in bg_records]
+    halo_bytes = [_recor2bytes(r, ses) for r in halo_records]
+    bg_bytes = [_recor2bytes(r, ses) for r in bg_records]
     bg_filenames = [r["filename"] for r in bg_records]
     return read(halo_bytes), read_bg(bg_bytes, bg_filenames)
+
 
 def _recor2bytes(record: dict, session: Session) -> BytesIO:
     path = pathlib.Path("cache", record["uuid"])
@@ -64,4 +71,3 @@ def _recor2bytes(record: dict, session: Session) -> BytesIO:
             f.write(file_bytes)
         file_io = BytesIO(file_bytes)
     return file_io
-            

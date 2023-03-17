@@ -42,3 +42,13 @@ def is_str_or_str_list(
 
 def is_ndarray_list(val: list[Any]) -> TypeGuard[list[np.ndarray]]:
     return all(isinstance(x, np.ndarray) for x in val)
+
+
+def is_ndarray(val: Any) -> TypeGuard[np.ndarray]:
+    return isinstance(val, np.ndarray)
+
+
+def is_fancy_index(val: Any) -> TypeGuard[tuple[list | slice]]:
+    if isinstance(val, tuple):
+        return all(isinstance(x, (list, slice)) for x in val)
+    return False
