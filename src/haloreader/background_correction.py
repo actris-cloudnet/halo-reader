@@ -35,19 +35,20 @@ def background_measurement_correction(
     p_amp_denormalized = (
         bg_relevant.data.sum(axis=1)[:, np.newaxis] * p_amp.data[np.newaxis, :]
     )
-    background_p_amp_removed = Variable.like(
-        bg_relevant,
-        long_name="p_amp removed background",
+    background_p_amp_removed = Variable(
+        name="background_p_amp_removed",
+        dimensions=bg_relevant.dimensions,
+        comment="p_amp removed background",
         data=bg_relevant.data - p_amp_denormalized,
     )
     bg_relevant_fit = _linear_fit(background_p_amp_removed)
     if not is_ndarray(bg_relevant_fit.data):
         raise TypeError
-    return Variable.like(
-        intensity,
+    return Variable(
         name="intensity",
-        standard_name="intensity",
         comment="background measurement corrected intensity",
+        dimensions=intensity.dimensions,
+        units=intensity.units,
         data=intensity.data
         * bg.data[intensity_index2bg_index]
         / (
@@ -149,9 +150,10 @@ def snr_correction(intensity: Variable, signalmask: np.ndarray) -> Variable:
     noise_fit = np.squeeze(_A[np.newaxis, :, :] @ x, axis=2)
     intensity_corrected = intensity.data.copy()
     intensity_corrected /= noise_fit
-    return Variable.like(
-        intensity,
+    return Variable(
         name="intensity",
-        comment="noise corrected intensity with signal mask",
+        long_name="background corrected intensity",
+        units=intensity.units,
+        dimensions=intensity.dimensions,
         data=intensity_corrected,
     )

@@ -1,6 +1,7 @@
 import numpy as np
 
 from haloreader.exceptions import UnexpectedDataTokens
+from haloreader.transformer import spectral_width_factory
 from haloreader.variable import Variable
 
 from libc.stdlib cimport atof
@@ -27,7 +28,7 @@ def read_data(data_py: bytes, ngates: cython.ulong, time_vars: list[Variable], t
         nprofiles = ntokens // (ntime_vars + ngates * (ntime_range_vars+1))
         if (ntime_vars + ngates * (ntime_range_vars+1)) * nprofiles == ntokens:
             ntime_range_vars += 1
-            time_range_vars.append(Variable(name="spectral_width"))
+            time_range_vars.append(spectral_width_factory())
         else:
             raise UnexpectedDataTokens
 

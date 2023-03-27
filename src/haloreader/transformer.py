@@ -9,6 +9,7 @@ import numpy as np
 from .attribute import Attribute
 from .metadata import Metadata
 from .scantype import ScanType
+from .utils import UNIX_TIME_UNIT
 from .variable import Variable
 
 
@@ -45,19 +46,19 @@ class HeaderTransformer(lark.Transformer):
 
     def ngates(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="ngates", data=val)
+        return Variable(name="ngates", long_name="number of gates", data=val)
 
     def npulses(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="npulses", data=val)
+        return Variable(name="npulses", long_name="number of pulses", data=val)
 
     def nrays(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="nrays", data=val)
+        return Variable(name="nrays", long_name="number of rays", data=val)
 
     def nwaypoints(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="nwaypoints", data=val)
+        return Variable(name="nwaypoints", long_name="number of waypoints", data=val)
 
     def scantype(self, children: list) -> Attribute:
         val, *_ = children
@@ -65,52 +66,70 @@ class HeaderTransformer(lark.Transformer):
 
     def focus_range(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="focus_range", data=val)
+        return Variable(name="focus_range", long_name="focus range", data=val)
 
     def gate_range(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="gate_range", data=val, units="m")
+        return Variable(
+            name="gate_range", long_name="length of a gate", data=val, units="m"
+        )
 
     def gate_length(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="gate_length", data=val, units="pts")
+        return Variable(
+            name="gate_length",
+            long_name="number of points per gate",
+            data=val,
+            units="1",
+        )
 
     def resolution(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="resolution", data=val, units="m/s")
+        return Variable(
+            name="resolution",
+            long_name="resolution of the doppler velocity",
+            data=val,
+            units="m/s",
+        )
 
     def end_of_header_with_instrument_spectral_width(self, children: list) -> Variable:
         val, *_ = children
-        return Variable(name="instrument_spectral_width", data=val)
+        return Variable(
+            name="instrument_spectral_width",
+            long_name="instrument spectral width",
+            units="1",
+            data=val,
+        )
 
     def start_time(self, children: list) -> dict:
         time_str, *_ = children
-        match_ = re.match(
+        if match_ := re.match(
             r"(\d{4})(\d{2})(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{2})", time_str
-        )
-        if match_ is None:
-            raise NotImplementedError(f"Parse for fmt {time_str} not implemented yet")
-        return {
-            "start_time": Variable(
-                name="start_time",
-                units="unix time",
-                dimensions=("start_time",),
-                data=np.array(
-                    [
-                        datetime(
-                            year=int(match_.group(1)),
-                            month=int(match_.group(2)),
-                            day=int(match_.group(3)),
-                            hour=int(match_.group(4)),
-                            minute=int(match_.group(5)),
-                            second=int(match_.group(6)),
-                            microsecond=int(match_.group(7).ljust(6, "0")),
-                            tzinfo=timezone.utc,
-                        ).timestamp()
-                    ]
-                ),
-            )
-        }
+        ):
+            return {
+                "start_time": Variable(
+                    name="start_time",
+                    long_name="start times of individual raw files",
+                    units=UNIX_TIME_UNIT,
+                    calendar="standard",
+                    dimensions=("start_time",),
+                    data=np.array(
+                        [
+                            datetime(
+                                year=int(match_.group(1)),
+                                month=int(match_.group(2)),
+                                day=int(match_.group(3)),
+                                hour=int(match_.group(4)),
+                                minute=int(match_.group(5)),
+                                second=int(match_.group(6)),
+                                microsecond=int(match_.group(7).ljust(6, "0")),
+                                tzinfo=timezone.utc,
+                            ).timestamp()
+                        ]
+                    ),
+                )
+            }
+        raise NotImplementedError(f"Parse for fmt {time_str} not implemented yet")
 
     def range_of_measurement(self, children: list) -> dict:
         func, *_ = children
@@ -142,37 +161,54 @@ class HeaderTransformer(lark.Transformer):
         long_name="decimal time",
     )
     AZIMUTH_DEG = lambda self, _: Variable(
-        name="azimuth", units="degrees", dimensions=("time",)
+        name="azimuth",
+        long_name="azimuth from north",
+        units="degrees",
+        dimensions=("time",),
     )
     ELEVATION_DEG = lambda self, _: Variable(
-        name="elevation", units="degrees", dimensions=("time",)
+        name="elevation",
+        long_name="elevation from horizontal",
+        units="degrees",
+        dimensions=("time",),
     )
     PITCH_DEG = lambda self, _: Variable(
-        name="pitch", units="degrees", dimensions=("time",)
+        name="pitch",
+        long_name="pitch offset of the instrument",
+        units="degrees",
+        dimensions=("time",),
     )
     ROLL_DEG = lambda self, _: Variable(
-        name="roll", units="degrees", dimensions=("time",)
+        name="roll",
+        long_name="roll offset of the instrument",
+        units="degrees",
+        dimensions=("time",),
     )
 
-    RANGE_GATE = lambda self, _: Variable(name="range", dimensions=("time", "range"))
+    RANGE_GATE = lambda self, _: Variable(
+        name="range", long_name="index of the gate", dimensions=("time", "range")
+    )
     DOPPLER = lambda self, _: Variable(
-        name="doppler_velocity", units="m/s", dimensions=("time", "range")
+        name="doppler_velocity",
+        long_name="radial velocity (positive away from lidar)",
+        units="m s-1",
+        dimensions=("time", "range"),
     )
     INTENSITY = lambda self, _: Variable(
         name="intensity_raw",
-        standard_name="raw signal",
-        units="snr+1",
+        long_name="raw intensity (signal-to-noise ratio + 1)",
+        units="1",
         dimensions=("time", "range"),
     )
     BETA = lambda self, _: Variable(
-        name="beta",
-        standard_name="attenuated backscatter",
+        name="beta_raw",
+        long_name="raw beta from instrument",
         units="m-1 sr-1",
         dimensions=("time", "range"),
     )
-    SPECTRAL_WIDTH = lambda self, _: Variable(
-        name="spectral_width", dimensions=("time", "range")
-    )
+    # spectral width variable is also defined in
+    # src/haloreader/data_reader/data_reader.pyx
+    SPECTRAL_WIDTH = lambda self, _: spectral_width_factory()
 
     def scantype_enum(self, children: list[ScanType]) -> ScanType:
         val, *_ = children
@@ -197,6 +233,15 @@ class HeaderTransformer(lark.Transformer):
     DECIMAL = lambda self, _: float(_.value)
 
 
+def spectral_width_factory() -> Variable:
+    return Variable(
+        name="spectral_width",
+        long_name="spectral width",
+        units="1",
+        dimensions=("time", "range"),
+    )
+
+
 def range_func(range_var: Variable, gate_range: Variable) -> Variable:
     if not isinstance(range_var.data, np.ndarray) or not isinstance(
         gate_range.data, float
@@ -207,6 +252,7 @@ def range_func(range_var: Variable, gate_range: Variable) -> Variable:
         raise TypeError
     return Variable(
         name="range",
+        long_name="range of measurement from the instrument",
         dimensions=("range",),
         units=gate_range.units,
         data=range_,

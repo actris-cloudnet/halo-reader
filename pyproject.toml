@@ -51,11 +51,11 @@ dev = [
   "autoflake",
   "isort",
   "pre-commit",
-  "types-requests"
+  "types-requests",
+  "cfchecker"
 ]
 
 [project.scripts]
-halo2nc = "haloreader.cli:halo2nc"
 haloreader = "haloreader.cli:halo_reader"
 haloboard = "haloboard.app:run"
 
@@ -69,6 +69,7 @@ addopts = "--cov=haloreader --cov-report html"
 testpaths = [
     "tests",
 ]
+filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.mypy]
 mypy_path = "stubs/"

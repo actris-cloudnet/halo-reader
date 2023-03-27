@@ -25,6 +25,7 @@ class Variable:
     standard_name: str | None = None
     long_name: str | None = None
     comment: str | None = None
+    calendar: str | None = None
     units: str | None = None
     dimensions: tuple[str, ...] | None = None
     data: DataType = None
@@ -44,7 +45,11 @@ class Variable:
                 nc.createDimension(dim, None)
         nc_var = nc.createVariable(self.name, nc_dtype, dimensions, zlib=True)
         nc_var[:] = self.data if self.data is not None else []
-        for attr_name in ["standard_name", "long_name", "comment", "units"]:
+        for attr_name in set(self.__dataclass_fields__.keys()) - {
+            "name",
+            "dimensions",
+            "data",
+        }:
             attr_val = getattr(self, attr_name)
             if attr_val:
                 setattr(nc_var, attr_name, attr_val)
@@ -54,23 +59,13 @@ class Variable:
         cls,
         var: Variable,
         data: DataType,
-        name: str | None = None,
-        standard_name: str | None = None,
-        long_name: str | None = None,
-        comment: str | None = None,
-        units: str | None = None,
-        dimensions: tuple[str, ...] | None = None,
     ) -> Variable:
         # pylint: disable=too-many-arguments
         return Variable(
-            name=name if name is not None else var.name,
-            standard_name=standard_name
-            if standard_name is not None
-            else var.standard_name,
-            long_name=long_name if long_name is not None else var.long_name,
-            comment=comment if comment is not None else var.comment,
-            units=units if units is not None else var.units,
-            dimensions=dimensions if dimensions is not None else var.dimensions,
+            **{
+                attr_name: getattr(var, attr_name)
+                for attr_name in set(var.__dataclass_fields__.keys()) - {"data"}
+            },
             data=data,
         )
 
@@ -101,11 +96,10 @@ class Variable:
         else:
             data = _concatenate_along_first_dimension(vars_)
         return Variable(
-            name=first_var.name,
-            standard_name=first_var.standard_name,
-            long_name=first_var.long_name,
-            units=first_var.units,
-            dimensions=first_var.dimensions,
+            **{
+                attr_name: getattr(first_var, attr_name)
+                for attr_name in set(first_var.__dataclass_fields__.keys()) - {"data"}
+            },
             data=data,
         )
 
@@ -194,16 +188,16 @@ def _dimension_exists(nc: netCDF4.Dataset | None, dim: str) -> bool:
 
 def _choose_nc_dtype(var: Variable) -> str:
     if var.data is None:
-        return "f4"
+        return "f8"
     if isinstance(var.data, float):
-        return "f4"
+        return "f8"
     if isinstance(var.data, int):
-        return "i4"
+        return "i8"
     if isinstance(var.data, np.ndarray):
         if var.data.dtype.kind == "f":
-            return "f4"
+            return "f8"
         if var.data.dtype.kind == "i":
-            return "i4"
+            return "i8"
         raise NetCDFWriteError
     raise NetCDFWriteError
 
@@ -212,14 +206,11 @@ def _check_merge(vars_: list[Variable]) -> None:
     if len(vars_) < 2:
         return
     first_var = vars_[0]
-    if not all(first_var.name == v.name for v in vars_[1:]):
-        raise MergeError
-    if not all(first_var.standard_name == v.standard_name for v in vars_[1:]):
-        raise MergeError
-    if not all(first_var.long_name == v.long_name for v in vars_[1:]):
-        raise MergeError
-    if not all(first_var.dimensions == v.dimensions for v in vars_[1:]):
-        raise MergeError
+    for attr_name in set(first_var.__dataclass_fields__.keys()) - {"data"}:
+        if not all(
+            getattr(first_var, attr_name) == getattr(v, attr_name) for v in vars_[1:]
+        ):
+            raise MergeError
 
 
 def _get_scalar_data(vars_: list[Variable]) -> float | int:

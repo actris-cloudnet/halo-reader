@@ -30,6 +30,9 @@ class Metadata:
     haloreader_version: Attribute = field(
         default_factory=lambda: Attribute(name="haloreader_version", value=pkgversion)
     )
+    conventions: Attribute = field(
+        default_factory=lambda: Attribute(name="Conventions", value="CF-1.8")
+    )
 
     def nc_write(self, nc: netCDF4.Dataset) -> None:
         # nc_meta = nc.createGroup("metadata")

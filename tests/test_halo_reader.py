@@ -1,14 +1,25 @@
 import datetime
+import tempfile
 from pathlib import Path
 
 import numpy as np
 import pytest
+from cfchecker import cfchecks
 
 from haloreader.exceptions import FileEmpty, UnexpectedDataTokens
 from haloreader.read import read, read_bg
 
 raw_files_pass = Path("tests/raw-files/pass/")
 raw_files_xfail = Path("tests/raw-files/xfail/")
+
+
+def _check_cf_conventions(nc_buf):
+    f = tempfile.NamedTemporaryFile(suffix=".nc")
+    f.write(nc_buf)
+    cf_instance = cfchecks.CFChecker()
+    res = cf_instance.checker(f.name)
+    err = [val["ERROR"] for val in res["variables"].values() if len(val["ERROR"]) > 0]
+    assert len(err) == 0, str(res)
 
 
 def test_eriswil():
@@ -18,13 +29,14 @@ def test_eriswil():
         "%Y-%m-%d %H:%M:%S.%f"
     )
     assert time == "2022-12-14 11:00:17.979984"
-    beta = halo.beta.data[0, 0]
-    assert np.isclose(beta, 1.569249e-6)
+    beta_raw = halo.beta_raw.data[0, 0]
+    assert np.isclose(beta_raw, 1.569249e-6)
     intensity = halo.intensity_raw.data[0, 1]
     assert np.isclose(intensity, 1.014089)
     doppler_velocity = halo.doppler_velocity.data[-1, -1]
     assert np.isclose(doppler_velocity, 16.1290)
-    halo.to_nc()
+    buf = halo.to_nc()
+    _check_cf_conventions(buf)
 
 
 def test_eriswil_merge():
@@ -35,13 +47,14 @@ def test_eriswil_merge():
         "%Y-%m-%d %H:%M:%S.%f"
     )
     assert time == "2022-12-14 11:00:17.979984"
-    beta = halo.beta.data[0, 0]
-    assert np.isclose(beta, 1.569249e-6)
+    beta_raw = halo.beta_raw.data[0, 0]
+    assert np.isclose(beta_raw, 1.569249e-6)
     intensity = halo.intensity_raw.data[0, 1]
     assert np.isclose(intensity, 1.014089)
     doppler_velocity = halo.doppler_velocity.data[-1, -1]
     assert np.isclose(doppler_velocity, -19.1484)
-    halo.to_nc()
+    buf = halo.to_nc()
+    _check_cf_conventions(buf)
 
 
 def test_soverato():
@@ -53,9 +66,10 @@ def test_soverato():
     assert halo.pitch.data.shape == (2,)
     assert halo.roll.data.shape == (2,)
     assert halo.intensity_raw.data.shape == (2, 400)
-    assert halo.beta.data.shape == (2, 400)
+    assert halo.beta_raw.data.shape == (2, 400)
     assert halo.doppler_velocity.data.shape == (2, 400)
-    halo.to_nc()
+    buf = halo.to_nc()
+    _check_cf_conventions(buf)
 
 
 def test_warsaw():
@@ -67,9 +81,10 @@ def test_warsaw():
     assert halo.pitch.data.shape == (2,)
     assert halo.roll.data.shape == (2,)
     assert halo.intensity_raw.data.shape == (2, 333)
-    assert halo.beta.data.shape == (2, 333)
+    assert halo.beta_raw.data.shape == (2, 333)
     assert halo.doppler_velocity.data.shape == (2, 333)
-    halo.to_nc()
+    buf = halo.to_nc()
+    _check_cf_conventions(buf)
 
 
 def test_xfail_warsaw():

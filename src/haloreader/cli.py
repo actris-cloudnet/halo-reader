@@ -32,6 +32,7 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
     if halobg is None:
         raise TypeError
     halo.correct_background(halobg)
+    halo.convert_time_unit()
     nc_buff = halo.to_nc()
     with open(f"halo_{args.site}_{args.date}.nc", "wb") as f:
         f.write(nc_buff)

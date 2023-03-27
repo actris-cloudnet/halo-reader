@@ -2,6 +2,10 @@ import time
 from datetime import datetime
 from types import TracebackType
 
+UNIX_TIME_UNIT = "seconds since 1970-01-01 00:00:00 +0000"
+UNIX_TIME_FMT = "%Y-%m-%d %H:%M:%S %z"
+CLOUDNET_TIME_UNIT_FMT = "hours since %Y-%m-%d %H:%M:%S %z"
+
 
 class Timer:
     def __init__(self, name: str = "timer"):

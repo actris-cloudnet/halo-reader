@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import datetime
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, Protocol, TypeGuard, runtime_checkable
 
@@ -10,6 +12,7 @@ import numpy as np
 import haloreader.background_correction as bgc
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_fancy_index, is_ndarray, is_none_list
+from haloreader.utils import CLOUDNET_TIME_UNIT_FMT, UNIX_TIME_FMT, UNIX_TIME_UNIT
 from haloreader.variable import Variable, VariableWithNumpyData
 
 
@@ -24,7 +27,7 @@ class Halo:
     roll: Variable
     doppler_velocity: Variable
     intensity_raw: Variable
-    beta: Variable
+    beta_raw: Variable
     spectral_width: Variable | None = None
     intensity: Variable | None = None
 
@@ -92,6 +95,10 @@ class Halo:
                     raise TypeError
                 halo_attr.data = halo_attr.data[index]
 
+    def convert_time_unit(self) -> None:
+        _convert_timevar_unit(self.time)
+        _convert_timevar_unit(self.metadata.start_time)
+
     def correct_background(self, halobg: HaloBg) -> None:
         if not is_ndarray(self.range.data):
             raise TypeError
@@ -108,11 +115,37 @@ class Halo:
         self.intensity = bgc.snr_correction(intensity_step1, signalmask)
 
 
+def _convert_timevar_unit(var: Variable) -> None:
+    if not (is_ndarray(var.data) and len(var.data) > 0):
+        return
+    if not isinstance(var.units, str):
+        raise TypeError
+    if match_ := re.match(r"(seconds|hours) since (.*)", var.units):
+        unit = match_.group(1)
+        if not isinstance(unit, str):
+            raise TypeError
+        base = datetime.datetime.strptime(match_.group(2), UNIX_TIME_FMT)
+        match unit:
+            case "seconds" | "minutes" | "hours" | "weeks":
+                tdelta = datetime.timedelta(**{unit: var.data[0]})  # type: ignore
+            case other_unit:
+                raise ValueError(f"Unexpected unit {other_unit}")
+        new_base = (base + tdelta).replace(hour=0, minute=0, second=0, microsecond=0)
+        base_diff = (base - new_base).total_seconds()
+        scale = datetime.timedelta(**{unit: 1}).total_seconds()  # type: ignore
+        new_time_in_hours = np.array([(base_diff + scale * t) / 3600 for t in var.data])
+        new_unit = new_base.strftime(CLOUDNET_TIME_UNIT_FMT)
+        var.data = new_time_in_hours
+        var.units = new_unit
+    else:
+        raise NotImplementedError
+
+
 def _sorted_halo_list_key(halo: Halo) -> float:
     if not is_ndarray(halo.metadata.start_time.data):
         raise TypeError
-    if halo.metadata.start_time.units != "unix time":
-        raise ValueError
+    if halo.metadata.start_time.units != UNIX_TIME_UNIT:
+        raise ValueError(f"Unexpected time units: {halo.metadata.start_time.units}")
     if len(halo.metadata.start_time.data) != 1:
         raise ValueError
     start_time = halo.metadata.start_time.data[0]
@@ -248,7 +281,7 @@ class HaloBgWithNumpyData(Protocol):
 def _sorted_halobg_list_key(halobg: HaloBg) -> float:
     if not is_ndarray(halobg.time.data):
         raise TypeError
-    if halobg.time.units != "unix time":
+    if halobg.time.units != UNIX_TIME_UNIT:
         raise ValueError
     if len(halobg.time.data) != 1:
         raise ValueError

@@ -14,6 +14,7 @@ from haloreader.data_reader import read_data
 from haloreader.exceptions import BackgroundReadError
 from haloreader.halo import Halo, HaloBg
 from haloreader.metadata import Metadata
+from haloreader.utils import UNIX_TIME_UNIT
 from haloreader.variable import Variable
 
 from .exceptions import FileEmpty, HeaderNotFound
@@ -66,13 +67,14 @@ def read_bg(
 
 
 def _bgfname2timevar(fname: str) -> Variable:
-    match_ = re.match(
+    if match_ := re.match(
         r"^Background_(\d{2})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.txt$", fname
-    )
-    if match_:
+    ):
         return Variable(
             name="time",
-            units="unix time",
+            long_name="time of a background measurement",
+            units=UNIX_TIME_UNIT,
+            calendar="standard",
             dimensions=("time",),
             data=np.array(
                 [
@@ -109,7 +111,7 @@ def _bg_src_fname_list(
 def _decimaltime2timestamp(time: Variable, metadata: Metadata) -> Variable:
     if time.long_name != "decimal time" or time.units != "hours":
         raise NotImplementedError
-    if metadata.start_time.units != "unix time":
+    if metadata.start_time.units != UNIX_TIME_UNIT:
         raise NotImplementedError
     day_in_seconds = 86400
     hour_in_seconds = 3600
@@ -127,7 +129,14 @@ def _decimaltime2timestamp(time: Variable, metadata: Metadata) -> Variable:
     while i_day_changed >= 0:
         time_[i_day_changed:] += day_in_seconds
         i_day_changed = _find_change_of_day(i_day_changed, time_)
-    return Variable(name="time", data=time_, dimensions=("time",), units="unix time")
+    return Variable(
+        name="time",
+        long_name="time",
+        calendar="standard",
+        data=time_,
+        dimensions=("time",),
+        units=UNIX_TIME_UNIT,
+    )
 
 
 def _find_change_of_day(start: int, time: npt.NDArray) -> int:

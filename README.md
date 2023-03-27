@@ -16,10 +16,6 @@
 * visualisations
 
 
-Todo:
-
-* [ ] Standard/long netcdf variable names following CF Conventions
-
 ## Installation
 
 ```bash
@@ -41,6 +37,12 @@ In WSL, you may need to install `build-essential` and `python3.10-dev` before in
 
 ## Usage
 
+```bash
+haloreader --help
+haloreader from_raw --help
+haloreader from_coudnet --help
+```
+
 ### Use data from cloudnet
 ```bash
 # generate halo_warsaw_2023-03-16.nc file
@@ -51,6 +53,17 @@ haloreader from_cloudnet --site warsaw --date 2023-03-16 --plot
 haloboard
 # open your browser at localhost:5000
 ```
+
+### Use raw files
+
+```bash
+haloreader from_raw Stare_213_20230326_*.hpl Background_*0323-*.txt -o out.nc --plot
+
+# Browse generated visualisations at /vis directory
+haloboard
+# open your browser at localhost:5000
+```
+**Note that a good background correction requires around 300 or more background profiles.**
 
 ## License
 
