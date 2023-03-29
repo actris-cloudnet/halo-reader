@@ -1,4 +1,5 @@
 include src/haloreader/grammar_header.lark
-include src/haloboard/templates/index.html
+include src/haloboard/templates/*.html
+include src/haloboard/static/*.css
 include src/haloboard/static/favicon.ico
 global-include *.pyx
