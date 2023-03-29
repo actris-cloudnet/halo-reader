@@ -12,6 +12,11 @@
 
 ### Fixed
 
+## [0.0.4] - 2023-03-29
+
+### Fixed
+- Fix missing style file
+
 ## [0.0.3] - 2023-03-28
 
 ### Added
@@ -20,3 +25,5 @@
 - Added tests for CF Convention compliance
 
 [0.0.3]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.3
+
+[0.0.4]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.4
