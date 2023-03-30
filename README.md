@@ -20,14 +20,16 @@
 
 ```bash
 # Requires python >= 3.10
-git clone https://github.com/actris-cloudnet/halo-reader.git
-cd halo-reader
-# create a virtual environment
+
+# create a virtual environment (optional)
 python3 -m venv env
 # activate the virtual environment
 source env/bin/activate
+# update pip
+pip install -U pip
+
 # install
-pip install .
+pip install halo-reader
 ```
 
 ### Notes for Windows Subsystem for Linux (WSL) users
