@@ -75,7 +75,7 @@ def get_new_changelog(ver: Version, fname: str) -> str:
     subsects = get_changelog_subsections()
     changelog = changelog.replace(
         "## [Unreleased]", f"## [Unreleased]\n\n{subsects}\n\n## [{ver}] - {date}"
-    )
+    ).strip()
     changelog += f"\n[{ver}]: {REPOSITORY_URL}/releases/tag/v{ver}"
     with tempfile.NamedTemporaryFile(suffix=".md") as temp:
         temp.write(changelog.encode())
@@ -119,6 +119,18 @@ def main():
     if input(f"Release: {ver}? [y/N] ").lower() in ["y"]:
         update_changelog(new_changelog_str, CHANGELOG_FNAME)
         update_version_file(ver, VERSION_FNAME)
+        subprocess.run(
+            [
+                "pre-commit",
+                "run",
+                "--files",
+                CHANGELOG_FNAME,
+                VERSION_FNAME,
+                ">/dev/null",
+                "2>&1",
+            ],
+            check=False,
+        )
         subprocess.run(["git", "add", CHANGELOG_FNAME, VERSION_FNAME], check=True)
         subprocess.run(["pre-commit", "run", "--all"], check=True)
         subprocess.run(["git", "commit", "-m", f"Release version {ver}"], check=True)
