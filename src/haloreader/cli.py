@@ -31,12 +31,18 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
         return
     if halobg is None:
         raise TypeError
+    log.info("Correct background")
     halo.correct_background(halobg)
+    log.info("Compute beta")
+    halo.compute_beta()
+    log.info("Convert timeunits")
     halo.convert_time_unit()
+    log.info("Create netCDF")
     nc_buff = halo.to_nc()
     with open(f"halo_{args.site}_{args.date}.nc", "wb") as f:
         f.write(nc_buff)
     if args.plot:
+        log.info("Create plots")
         writer = Writer()
         fig, ax = plt.subplots(3, 1, figsize=(24, 16))
         halo.intensity_raw.plot(ax[0])

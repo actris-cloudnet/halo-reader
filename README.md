@@ -42,7 +42,7 @@ In WSL, you may need to install `build-essential` and `python3.10-dev` before in
 ```bash
 haloreader --help
 haloreader from_raw --help
-haloreader from_coudnet --help
+haloreader from_cloudnet --help
 ```
 
 ### Use data from cloudnet

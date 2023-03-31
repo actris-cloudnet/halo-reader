@@ -42,6 +42,7 @@ def get_halo_cloudnet(
     site: str, date: datetime.date, scantype: ScanType = ScanType.STARE
 ) -> tuple[Halo | None, HaloBg | None]:
     ses = Session()
+    log.info("Fetching metadata for %s", date)
     records = ses.get_metadata(
         site, date_from=date - datetime.timedelta(days=60), date_to=date
     )

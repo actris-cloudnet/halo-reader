@@ -194,10 +194,12 @@ def _choose_nc_dtype(var: Variable) -> str:
     if isinstance(var.data, int):
         return "i8"
     if isinstance(var.data, np.ndarray):
-        if var.data.dtype.kind == "f":
+        if var.name == "time" and var.data.dtype.kind == "f":
             return "f8"
+        if var.data.dtype.kind == "f":
+            return "f4"
         if var.data.dtype.kind == "i":
-            return "i8"
+            return "i4"
         raise NetCDFWriteError
     raise NetCDFWriteError
 

@@ -9,11 +9,14 @@ from typing import Any, Protocol, TypeGuard, runtime_checkable
 import netCDF4
 import numpy as np
 
-import haloreader.background_correction as bgc
+import haloreader.attenuated_backscatter_coefficient
+import haloreader.background_correction
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_fancy_index, is_ndarray, is_none_list
 from haloreader.utils import CLOUDNET_TIME_UNIT_FMT, UNIX_TIME_FMT, UNIX_TIME_UNIT
 from haloreader.variable import Variable, VariableWithNumpyData
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -30,6 +33,7 @@ class Halo:
     beta_raw: Variable
     spectral_width: Variable | None = None
     intensity: Variable | None = None
+    beta: Variable | None = None
 
     def to_nc(self) -> memoryview:
         nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
@@ -104,15 +108,37 @@ class Halo:
             raise TypeError
         halobg_sliced = halobg.slice_range(len(self.range.data))
         p_amp = halobg_sliced.amplifier_noise()
-        intensity_step1 = bgc.background_measurement_correction(
-            self.time,
-            self.intensity_raw,
-            halobg_sliced.time,
-            halobg_sliced.background,
-            p_amp,
+        intensity_step1 = (
+            haloreader.background_correction.background_measurement_correction(
+                self.time,
+                self.intensity_raw,
+                halobg_sliced.time,
+                halobg_sliced.background,
+                p_amp,
+            )
         )
-        signalmask = bgc.threshold_signalmask(intensity_step1)
-        self.intensity = bgc.snr_correction(intensity_step1, signalmask)
+        signalmask = haloreader.background_correction.threshold_signalmask(
+            intensity_step1
+        )
+        self.intensity = haloreader.background_correction.snr_correction(
+            intensity_step1, signalmask
+        )
+
+    def compute_beta(self) -> None:
+        if not isinstance(self.intensity, Variable):
+            raise TypeError
+        beta = haloreader.attenuated_backscatter_coefficient.compute_beta(
+            self.intensity, self.range, self.metadata.focus_range
+        )
+        log.warning(
+            "beta is computed using placeholder values"
+            "and then scaled to match values from raw beta"
+        )
+        if not is_ndarray(self.beta_raw.data) or not is_ndarray(beta.data):
+            raise TypeError
+        placeholder_scale = self.beta_raw.data.mean() / beta.data.mean()
+        beta.data = placeholder_scale * beta.data
+        self.beta = beta
 
 
 def _convert_timevar_unit(var: Variable) -> None:
@@ -229,7 +255,7 @@ class HaloBg:
             raise TypeError
         nignored = len(halobgs) - len(halobgs_filtered)
         if nignored > 0:
-            logging.warning(
+            log.warning(
                 "Ignoring %d/%d background profiles (mismatching # of range gates)",
                 nignored,
                 len(halobgs),
@@ -303,5 +329,5 @@ def _duplicate_time_mask(time: np.ndarray) -> np.ndarray:
     _mask = np.isclose(np.diff(time), 0)
     nremoved = _mask.sum()
     if nremoved > 0:
-        logging.debug("Removed %d profiles (duplicate timestamps)", nremoved)
+        log.debug("Removed %d profiles (duplicate timestamps)", nremoved)
     return np.logical_not(np.insert(_mask, 0, False))

@@ -27,7 +27,7 @@ npulses: _md{"Pulses/ray", INTEGER}
 nrays: _md{"No. of rays in file", INTEGER}
 nwaypoints: _md{"No. of waypoints in file", INTEGER}
 scantype: _md{"Scan type", scantype_enum}
-focus_range: _md{"Focus range", INTEGER}
+focus_range: _md{"Focus range", DECIMAL}
 start_time: _md{"Start time", STRING}
 resolution: _md{"Resolution (m/s)", DECIMAL}
 range_of_measurement: RANGE_OF_MEASUREMENT

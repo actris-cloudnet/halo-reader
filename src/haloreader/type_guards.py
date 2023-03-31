@@ -48,7 +48,7 @@ def is_ndarray(val: Any) -> TypeGuard[np.ndarray]:
     return isinstance(val, np.ndarray)
 
 
-def is_fancy_index(val: Any) -> TypeGuard[tuple[list | slice]]:
+def is_fancy_index(val: Any) -> TypeGuard[tuple[list | np.ndarray | slice]]:
     if isinstance(val, tuple):
-        return all(isinstance(x, (list, slice)) for x in val)
+        return all(isinstance(x, (list, np.ndarray, slice)) for x in val)
     return False

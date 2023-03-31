@@ -47,3 +47,12 @@ repos:
             "-rn", # Only display messages
             "-sn", # Don't display the score
           ]
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        exclude: ^(tests/|release|setup.py)

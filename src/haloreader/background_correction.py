@@ -13,6 +13,7 @@ def background_measurement_correction(
     bg: Variable,
     p_amp: Variable,
 ) -> Variable:
+    # ref: https://doi.org/10.5194/amt-12-839-2019
     if not is_ndarray(time.data):
         raise TypeError
     if not is_ndarray(intensity.data):

@@ -1,3 +1,4 @@
+import logging
 import pkgutil
 import re
 from datetime import datetime, timezone
@@ -20,6 +21,8 @@ from haloreader.variable import Variable
 from .exceptions import FileEmpty, HeaderNotFound
 from .transformer import HeaderTransformer
 
+log = logging.getLogger(__name__)
+
 grammar_header = pkgutil.get_data("haloreader", "grammar_header.lark")
 if not isinstance(grammar_header, bytes):
     raise FileNotFoundError("Header grammar file not found")
@@ -35,6 +38,7 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         metadata, time_vars, time_range_vars, range_func = header_parser.parse(
             header_bytes.decode()
         )
+        log.info("Reading data from %s", metadata.filename.value)
         data_bytes = _read_data(src, header_end)
         if not isinstance(metadata.ngates.data, int):
             raise TypeError
@@ -43,6 +47,7 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         vars_["time"] = _decimaltime2timestamp(vars_["time"], metadata)
         vars_["range"] = range_func(vars_["range"], metadata.gate_range)
         halos.append(Halo(metadata=metadata, **vars_))
+    log.info("Merging files")
     return Halo.merge(halos)
 
 
