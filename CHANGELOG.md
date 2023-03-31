@@ -12,6 +12,14 @@
 
 ### Fixed
 
+## [0.0.6] - 2023-03-31
+
+### Added
+- Compute beta using placeholder values (for testing)
+
+### Changed
+- Use float instead of douple in data arrays (excluding time)
+
 ## [0.0.5] - 2023-03-30
 
 ### Fixed
@@ -32,3 +40,4 @@
 [0.0.3]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.3
 [0.0.4]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.4
 [0.0.5]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.5
+[0.0.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.6
