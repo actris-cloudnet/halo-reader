@@ -1,4 +1,4 @@
-# HALO reader - tool for HALO Photonics wind doppler lidar post-processing
+# HALO reader – tool for HALO Photonics wind doppler lidar post-processing
 
 [![Tests](https://github.com/actris-cloudnet/halo-reader/actions/workflows/ci.yml/badge.svg)](https://github.com/actris-cloudnet/halo-reader/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/halo-reader.svg)](https://badge.fury.io/py/halo-reader)
@@ -10,16 +10,17 @@
 [create issue](https://github.com/actris-cloudnet/halo-reader/issues/new)
 
 
-## Features:
-* Read and merge raw files into a netCDF file.
-* Reads raw data directly from [Cloudnet](https://cloudnet.fmi.fi/) into a netCDF
-* visualisations
+## Features
+
+* Read and merge raw files into a netCDF file
+* Read raw data directly from [Cloudnet](https://cloudnet.fmi.fi/) into a netCDF
+* Visualise data
 
 
 ## Installation
 
 ```bash
-# Requires python >= 3.10
+# Requires Python 3.10 or newer
 
 # create a virtual environment (optional)
 python3 -m venv env
@@ -33,8 +34,9 @@ pip install halo-reader
 ```
 
 ### Notes for Windows Subsystem for Linux (WSL) users
-You can get python3.10 >= by installing [Ubuntu 22.04 from microsoft store](https://apps.microsoft.com/store/detail/ubuntu-22042-lts/9PN20MSR04DW).
-In WSL, you may need to install `build-essential` and `python3.10-dev` before installing `halo-reader`.
+
+You can get Python 3.10 by installing [Ubuntu 22.04 from microsoft store](https://apps.microsoft.com/store/detail/ubuntu-22042-lts/9PN20MSR04DW).
+In WSL, you may need to install `build-essential` and `python3-dev` before installing `halo-reader`.
 
 
 ## Usage
@@ -46,6 +48,7 @@ haloreader from_cloudnet --help
 ```
 
 ### Use data from cloudnet
+
 ```bash
 # generate halo_warsaw_2023-03-16.nc file
 # and vis/halo_warsaw_2023-13-16.png visualisation
