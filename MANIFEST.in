@@ -3,3 +3,4 @@ include src/haloboard/templates/*.html
 include src/haloboard/static/*.css
 include src/haloboard/static/favicon.ico
 global-include *.pyx
+global-include py.typed
