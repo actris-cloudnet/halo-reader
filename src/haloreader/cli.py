@@ -36,7 +36,7 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
     log.info("Compute beta")
     halo.compute_beta()
     log.info("Convert timeunits")
-    halo.convert_time_unit()
+    halo.convert_time_unit2cloudnet_time()
     log.info("Create netCDF")
     nc_buff = halo.to_nc()
     with open(f"halo_{args.site}_{args.date}.nc", "wb") as f:

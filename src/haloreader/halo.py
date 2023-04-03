@@ -99,9 +99,9 @@ class Halo:
                     raise TypeError
                 halo_attr.data = halo_attr.data[index]
 
-    def convert_time_unit(self) -> None:
-        _convert_timevar_unit(self.time)
-        _convert_timevar_unit(self.metadata.start_time)
+    def convert_time_unit2cloudnet_time(self) -> None:
+        _convert_timevar_unit2cloudnet_time(self.time)
+        _convert_timevar_unit2cloudnet_time(self.metadata.start_time)
 
     def correct_background(self, halobg: HaloBg) -> None:
         if not is_ndarray(self.range.data):
@@ -130,18 +130,24 @@ class Halo:
         beta = haloreader.attenuated_backscatter_coefficient.compute_beta(
             self.intensity, self.range, self.metadata.focus_range
         )
-        log.warning(
-            "beta is computed using placeholder values"
-            "and then scaled to match values from raw beta"
-        )
         if not is_ndarray(self.beta_raw.data) or not is_ndarray(beta.data):
             raise TypeError
         placeholder_scale = self.beta_raw.data.mean() / beta.data.mean()
+        log.warning(
+            "beta is computed using placeholder values"
+            "and then scaled by %0.3f to match values from raw beta",
+            placeholder_scale,
+        )
         beta.data = placeholder_scale * beta.data
         self.beta = beta
 
 
-def _convert_timevar_unit(var: Variable) -> None:
+def _convert_timevar_unit2cloudnet_time(var: Variable) -> None:
+    """Converts time variable to cloudnet format.
+
+    Format is: hours since [beginning of the day of the first
+    measurement]
+    """
     if not (is_ndarray(var.data) and len(var.data) > 0):
         return
     if not isinstance(var.units, str):
