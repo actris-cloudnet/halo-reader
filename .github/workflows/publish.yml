@@ -28,14 +28,15 @@ jobs:
         run: >-
           python -m
           twine upload dist/*
-      - name: Generate changelog
-        run: |
-          version=${GITHUB_REF#refs/tags/v}
-          sed "0,/^## \\[\\?${version//./\\.}/d;/^## /,\$d" CHANGELOG.md > ${{ github.workspace }}-CHANGELOG.txt
-          echo "::set-output name=name::HALO reader $version"
-        id: changelog
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: ${{ steps.changelog.outputs.name }}
-          body_path: ${{ github.workspace }}-CHANGELOG.txt
+      # Uncomment when there's something worth of releasing
+      #- name: Generate changelog
+      #  run: |
+      #    version=${GITHUB_REF#refs/tags/v}
+      #    sed "0,/^## \\[\\?${version//./\\.}/d;/^## /,\$d" CHANGELOG.md > ${{ github.workspace }}-CHANGELOG.txt
+      #    echo "::set-output name=name::HALO reader $version"
+      #  id: changelog
+      #- name: Create release
+      #  uses: softprops/action-gh-release@v1
+      #  with:
+      #    name: ${{ steps.changelog.outputs.name }}
+      #    body_path: ${{ github.workspace }}-CHANGELOG.txt
