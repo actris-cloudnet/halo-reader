@@ -3,9 +3,6 @@
 ## [Unreleased]
 
 ### Added
-- Add posibility to change variable and attribute names in netCDF
-- Exclude variables from netCDF
-- Add screened beta and doppler velocity
 
 ### Changed
 
@@ -14,6 +11,13 @@
 ### Removed
 
 ### Fixed
+
+## [0.0.8] - 2023-04-12
+
+### Added
+- Add posibility to change variable and attribute names in netCDF
+- Exclude variables from netCDF
+- Add screened beta and doppler velocity
 
 ## [0.0.7] - 2023-04-03
 
@@ -50,3 +54,4 @@
 [0.0.5]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.5
 [0.0.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.6
 [0.0.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.7
+[0.0.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.8
