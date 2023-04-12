@@ -11,6 +11,7 @@ import numpy as np
 
 import haloreader.attenuated_backscatter_coefficient
 import haloreader.background_correction
+import haloreader.screen
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_fancy_index, is_ndarray, is_none_list
 from haloreader.utils import CLOUDNET_TIME_UNIT_FMT, UNIX_TIME_FMT, UNIX_TIME_UNIT
@@ -34,15 +35,19 @@ class Halo:
     spectral_width: Variable | None = None
     intensity: Variable | None = None
     beta: Variable | None = None
+    beta_screened: Variable | None = None
+    doppler_velocity_screened: Variable | None = None
 
-    def to_nc(self) -> memoryview:
+    def to_nc(
+        self,
+        nc_map: dict[str, dict] | None = None,
+        nc_exclude: dict[str, set] | None = None,
+    ) -> memoryview:
         nc = netCDF4.Dataset("inmemory.nc", "w", memory=1028)
-        self.time.nc_create_dimension(nc)
-        self.range.nc_create_dimension(nc)
         for attr_name in self.__dataclass_fields__.keys():
             halo_attr = getattr(self, attr_name)
             if halo_attr is not None:
-                halo_attr.nc_write(nc)
+                halo_attr.nc_write(nc, nc_map=nc_map, nc_exclude=nc_exclude)
         nc_buf = nc.close()
         if isinstance(nc_buf, memoryview):
             return nc_buf
@@ -127,19 +132,42 @@ class Halo:
     def compute_beta(self) -> None:
         if not isinstance(self.intensity, Variable):
             raise TypeError
-        beta = haloreader.attenuated_backscatter_coefficient.compute_beta(
+        log.warning("beta is computed using placeholder values")
+        self.beta = haloreader.attenuated_backscatter_coefficient.compute_beta(
             self.intensity, self.range, self.metadata.focus_range
         )
-        if not is_ndarray(self.beta_raw.data) or not is_ndarray(beta.data):
+
+    def compute_noise_screen(self) -> Variable:
+        if not isinstance(self.intensity, Variable):
             raise TypeError
-        placeholder_scale = self.beta_raw.data.mean() / beta.data.mean()
-        log.warning(
-            "beta is computed using placeholder values"
-            "and then scaled by %0.3f to match values from raw beta",
-            placeholder_scale,
+        return haloreader.screen.compute_noise_screen(
+            self.intensity, self.doppler_velocity
         )
-        beta.data = placeholder_scale * beta.data
-        self.beta = beta
+
+    def compute_beta_screened(self, screen: Variable) -> None:
+        if not isinstance(self.beta, Variable):
+            raise TypeError
+        self.beta_screened = Variable(
+            name="beta_screened",
+            long_name="screened attenuated backscatter coefficient",
+            comment=(
+                "Experimental variable. Computed using uncalibrated/placeholder values."
+            ),
+            units="m-1 sr-1",
+            dimensions=self.beta.dimensions,
+            data=np.ma.masked_array(self.beta.data, mask=screen.data),
+        )
+
+    def compute_doppler_velocity_screened(self, screen: Variable) -> None:
+        if not isinstance(self.beta, Variable):
+            raise TypeError
+        self.doppler_velocity_screened = Variable(
+            name="doppler_velocity_screened",
+            long_name="screened radial velocity (positive away from lidar)",
+            units=self.doppler_velocity.units,
+            dimensions=self.doppler_velocity.dimensions,
+            data=np.ma.masked_array(self.doppler_velocity.data, mask=screen.data),
+        )
 
 
 def _convert_timevar_unit2cloudnet_time(var: Variable) -> None:

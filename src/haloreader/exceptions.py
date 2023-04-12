@@ -20,3 +20,7 @@ class NetCDFWriteError(Exception):
 
 class BackgroundReadError(Exception):
     pass
+
+
+class BackgroundCorrectionError(Exception):
+    pass

@@ -37,13 +37,26 @@ class Variable:
     def nc_create_dimension(self, nc: netCDF4.Dataset) -> None:
         nc.createDimension(self.name, None)
 
-    def nc_write(self, nc: netCDF4.Dataset) -> None:
+    def nc_write(
+        self,
+        nc: netCDF4.Dataset,
+        nc_map: dict[str, dict] | None = None,
+        nc_exclude: dict[str, set] | None = None,
+    ) -> None:
+        nc_exclude_var = (
+            nc_exclude.get("variables", set()) if nc_exclude is not None else set()
+        )
+        if self.name in nc_exclude_var:
+            return
+        nc_map_var = nc_map.get("variables", {}) if nc_map is not None else {}
+        var_name = nc_map_var.get(self.name, self.name)
         nc_dtype = _choose_nc_dtype(self)
         dimensions = self.dimensions if self.dimensions is not None else ()
-        for dim in dimensions:
+        mapped_dimensions = tuple((nc_map_var.get(dim, dim) for dim in dimensions))
+        for dim in mapped_dimensions:
             if not _dimension_exists(nc, dim):
                 nc.createDimension(dim, None)
-        nc_var = nc.createVariable(self.name, nc_dtype, dimensions, zlib=True)
+        nc_var = nc.createVariable(var_name, nc_dtype, mapped_dimensions, zlib=True)
         nc_var[:] = self.data if self.data is not None else []
         for attr_name in set(self.__dataclass_fields__.keys()) - {
             "name",
@@ -60,7 +73,6 @@ class Variable:
         var: Variable,
         data: DataType,
     ) -> Variable:
-        # pylint: disable=too-many-arguments
         return Variable(
             **{
                 attr_name: getattr(var, attr_name)
@@ -188,11 +200,11 @@ def _dimension_exists(nc: netCDF4.Dataset | None, dim: str) -> bool:
 
 def _choose_nc_dtype(var: Variable) -> str:
     if var.data is None:
-        return "f8"
+        return "f4"
     if isinstance(var.data, float):
-        return "f8"
+        return "f4"
     if isinstance(var.data, int):
-        return "i8"
+        return "i4"
     if isinstance(var.data, np.ndarray):
         if var.name == "time" and var.data.dtype.kind == "f":
             return "f8"

@@ -14,13 +14,25 @@ class Attribute:
     name: str
     value: str | ScanType | list[str]
 
-    def nc_write(self, nc: netCDF4.Dataset) -> None:
+    def nc_write(
+        self,
+        nc: netCDF4.Dataset,
+        nc_map: dict[str, dict] | None = None,
+        nc_exclude: dict[str, set] | None = None,
+    ) -> None:
+        nc_exclude_attr = (
+            nc_exclude.get("attributes", set()) if nc_exclude is not None else set()
+        )
+        if self.name in nc_exclude_attr:
+            return
+        nc_map_attr = nc_map.get("attributes", {}) if nc_map is not None else {}
+        name = nc_map_attr.get(self.name, self.name)
         if isinstance(self.value, str):
-            setattr(nc, self.name, self.value)
+            setattr(nc, name, self.value)
         elif isinstance(self.value, ScanType):
-            setattr(nc, self.name, str(self.value))
+            setattr(nc, name, str(self.value))
         elif is_str_list(self.value):
-            setattr(nc, self.name, "\n".join(self.value))
+            setattr(nc, name, "\n".join(self.value))
 
     @classmethod
     def is_attribute_list(cls, val: list[Any]) -> TypeGuard[list[Attribute]]:

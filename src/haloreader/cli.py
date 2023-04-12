@@ -35,6 +35,12 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
     halo.correct_background(halobg)
     log.info("Compute beta")
     halo.compute_beta()
+    log.info("Compute noise screen")
+    screen = halo.compute_noise_screen()
+    log.info("Compute screened beta")
+    halo.compute_beta_screened(screen)
+    log.info("Compute screened doppler velocity")
+    halo.compute_doppler_velocity_screened(screen)
     log.info("Convert timeunits")
     halo.convert_time_unit2cloudnet_time()
     log.info("Create netCDF")
@@ -49,6 +55,7 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
         halo.doppler_velocity.plot(ax[1])
         if halo.intensity is not None:
             halo.intensity.plot(ax[2])
+
         writer.add_figure(f"halo_{args.site}_{args.date}", fig)
 
 

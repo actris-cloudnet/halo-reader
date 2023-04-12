@@ -35,6 +35,14 @@ def compute_beta(intensity: Variable, range_: Variable, focus: Variable) -> Vari
         speed of light
     B
         reveiver bandwidth
+
+    References
+    ----------
+    Methodology for deriving the telescope focus function and
+    its uncertainty for a heterodyne pulsed Doppler lidar
+        authors:  Pyry Pentikäinen, Ewan James O'Connor,
+            Antti Juhani Manninen, and Pablo Ortiz-Amezcua
+        doi: https://doi.org/10.5194/amt-13-2849-2020
     """
     if not is_ndarray(intensity.data):
         raise TypeError
@@ -55,8 +63,10 @@ def compute_beta(intensity: Variable, range_: Variable, focus: Variable) -> Vari
     beta = 2 * h * nu * B * r**2 * snr / (eta * c * E * A_e)
     return Variable(
         name="beta",
-        long_name="Attenuated backscatter coefficient",
-        comment="Computed using placeholder values. Do not use this variable",
+        long_name="attenuated backscatter coefficient",
+        comment=(
+            "Experimental variable. Computed using uncalibrated/placeholder values."
+        ),
         units="m-1 sr-1",
         dimensions=intensity.dimensions,
         data=beta,

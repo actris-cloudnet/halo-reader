@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- Add posibility to change variable and attribute names in netCDF
+- Exclude variables from netCDF
+- Add screened beta and doppler velocity
 
 ### Changed
 

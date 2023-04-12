@@ -27,6 +27,14 @@ class Metadata:
     nrays: Variable | None = None
     nwaypoints: Variable | None = None
     instrument_spectral_width: Variable | None = None
+    wavelength: Variable | None = field(
+        default_factory=lambda: Variable(
+            name="wavelength",
+            standard_name="radiation_wavelength",
+            units="m",
+            data=1.5e-6,
+        )
+    )
     haloreader_version: Attribute = field(
         default_factory=lambda: Attribute(name="haloreader_version", value=pkgversion)
     )
@@ -34,13 +42,16 @@ class Metadata:
         default_factory=lambda: Attribute(name="Conventions", value="CF-1.8")
     )
 
-    def nc_write(self, nc: netCDF4.Dataset) -> None:
-        # nc_meta = nc.createGroup("metadata")
-        nc_meta = nc
+    def nc_write(
+        self,
+        nc: netCDF4.Dataset,
+        nc_map: dict[str, dict] | None = None,
+        nc_exclude: dict[str, set] | None = None,
+    ) -> None:
         for attr_name in self.__dataclass_fields__.keys():
             metadata_attr = getattr(self, attr_name)
             if metadata_attr is not None:
-                metadata_attr.nc_write(nc_meta)
+                metadata_attr.nc_write(nc, nc_map=nc_map, nc_exclude=nc_exclude)
 
     @classmethod
     def merge(cls, metadata_list: list[Metadata]) -> Metadata | None:
@@ -51,7 +62,6 @@ class Metadata:
         metadata_attrs: dict[str, Any] = {}
         for attr_name in cls.__dataclass_fields__.keys():
             metadata_attr_list = [getattr(md, attr_name) for md in metadata_list]
-
             if Attribute.is_attribute_list(metadata_attr_list):
                 metadata_attrs[attr_name] = Attribute.merge(metadata_attr_list)
             elif Variable.is_variable_list(metadata_attr_list):

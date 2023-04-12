@@ -16,7 +16,7 @@ main {
 .container {
   display: flex;
   flex-direction: column;
-  width: min(100vw, 1200px);
+  width: min(100vw, 1800px);
 
 }
 .input-filter {

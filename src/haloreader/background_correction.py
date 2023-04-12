@@ -1,7 +1,8 @@
 import numpy as np
-from scipy.ndimage import gaussian_filter  # mypy:
+from scipy.ndimage import gaussian_filter
 from scipy.signal import medfilt2d
 
+from haloreader.exceptions import BackgroundCorrectionError
 from haloreader.type_guards import is_ndarray
 from haloreader.variable import Variable
 
@@ -13,7 +14,14 @@ def background_measurement_correction(
     bg: Variable,
     p_amp: Variable,
 ) -> Variable:
-    # ref: https://doi.org/10.5194/amt-12-839-2019
+    """
+    References
+    ----------
+    A novel post-processing algorithm for Halo Doppler lidars
+        authors:  Ville Vakkari, Antti J. Manninen, Ewan J. O'Connor,
+            Jan H. Schween, Pieter G. van Zyl, and Eleni Marinou
+        doi: https://doi.org/10.5194/amt-12-839-2019
+    """
     if not is_ndarray(time.data):
         raise TypeError
     if not is_ndarray(intensity.data):
@@ -24,7 +32,12 @@ def background_measurement_correction(
         raise TypeError
     if not is_ndarray(p_amp.data):
         raise TypeError
-    intensity_index2bg_index = _previous_measurement_map(time.data, time_bg.data)
+    try:
+        intensity_index2bg_index = _previous_measurement_map(time.data, time_bg.data)
+    except ValueError as err:
+        raise BackgroundCorrectionError(
+            "Cannot find matching background measurement for all profiles"
+        ) from err
     relevant_bg_indeces = sorted(list(set(intensity_index2bg_index)))
     relevant_bg_indeces_map = {v: i for i, v in enumerate(relevant_bg_indeces)}
     intensity_index2relevant_bg_index = np.array(
