@@ -134,7 +134,10 @@ class Halo:
             raise TypeError
         log.warning("beta is computed using placeholder values")
         self.beta = haloreader.attenuated_backscatter_coefficient.compute_beta(
-            self.intensity, self.range, self.metadata.focus_range
+            self.intensity,
+            self.range,
+            self.metadata.focus_range,
+            self.metadata.wavelength,
         )
 
     def compute_noise_screen(self) -> Variable:

@@ -9,7 +9,9 @@ from haloreader.variable import Variable
 log = logging.getLogger(__name__)
 
 
-def compute_beta(intensity: Variable, range_: Variable, focus: Variable) -> Variable:
+def compute_beta(
+    intensity: Variable, range_: Variable, focus: Variable, wavelength: Variable
+) -> Variable:
     # pylint: disable=invalid-name
     """
     Parameters
@@ -48,13 +50,19 @@ def compute_beta(intensity: Variable, range_: Variable, focus: Variable) -> Vari
         raise TypeError
     if not is_ndarray(range_.data):
         raise TypeError
+    if not isinstance(wavelength.data, float):
+        raise TypeError
+    if wavelength.units != "m":
+        raise NotImplementedError(
+            f'Expected wavelength units "m", got "{wavelength.units}".'
+        )
 
     r = range_.data
     h = constants.Planck
     eta = 1
     c = constants.speed_of_light
     E = 1e-5
-    lambda_ = 1.5e-6
+    lambda_ = wavelength.data
     nu = c / lambda_
     B = 5e7
     A_e = compute_effective_receiver_energy(range_, focus, lambda_)
@@ -83,7 +91,7 @@ def compute_effective_receiver_energy(
     range_
         distance from the instrument
     focus
-        focal length og the telescope for the transmitter and receiver
+        effective focal length of the telescope for the transmitter and receiver
     lambda_
         laser wavelength
     """

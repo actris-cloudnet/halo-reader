@@ -5,6 +5,7 @@
 ### Added
 
 ### Changed
+- default wavelength from 1.5um to 1.565um
 
 ### Deprecated
 

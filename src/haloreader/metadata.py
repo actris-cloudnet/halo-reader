@@ -27,12 +27,12 @@ class Metadata:
     nrays: Variable | None = None
     nwaypoints: Variable | None = None
     instrument_spectral_width: Variable | None = None
-    wavelength: Variable | None = field(
+    wavelength: Variable = field(
         default_factory=lambda: Variable(
             name="wavelength",
             standard_name="radiation_wavelength",
             units="m",
-            data=1.5e-6,
+            data=1.565e-6,
         )
     )
     haloreader_version: Attribute = field(
