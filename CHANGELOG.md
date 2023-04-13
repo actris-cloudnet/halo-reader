@@ -5,13 +5,17 @@
 ### Added
 
 ### Changed
-- default wavelength from 1.5um to 1.565um
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+## [0.0.9] - 2023-04-13
+
+### Changed
+- default wavelength from 1.5um to 1.565um
 
 ## [0.0.8] - 2023-04-12
 
@@ -56,3 +60,4 @@
 [0.0.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.6
 [0.0.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.7
 [0.0.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.8
+[0.0.9]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.9
