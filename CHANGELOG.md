@@ -5,6 +5,7 @@
 ### Added
 
 ### Changed
+- Ignore profiles where timestamps are not increasing
 
 ### Deprecated
 

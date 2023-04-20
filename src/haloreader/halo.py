@@ -79,6 +79,8 @@ class Halo:
         if not _is_increasing(halo.time.data):
             halo.remove_profiles_with_duplicate_time()
         if not _is_increasing(halo.time.data):
+            halo.remove_profiles_with_non_increasing_time()
+        if not _is_increasing(halo.time.data):
             raise ValueError("Time must be increasing")
         return halo
 
@@ -86,6 +88,28 @@ class Halo:
         if not is_ndarray(self.time.data):
             raise TypeError
         mask = _duplicate_time_mask(self.time.data)
+        for attr_name in self.__dataclass_fields__.keys():
+            halo_attr = getattr(self, attr_name)
+            if (
+                isinstance(halo_attr, Variable)
+                and is_ndarray(halo_attr.data)
+                and isinstance(halo_attr.dimensions, tuple)
+                and self.time.name in halo_attr.dimensions
+            ):
+                index = tuple(
+                    (
+                        mask if d == self.time.name else slice(None)
+                        for i, d in enumerate(halo_attr.dimensions)
+                    )
+                )
+                if not is_fancy_index(index):
+                    raise TypeError
+                halo_attr.data = halo_attr.data[index]
+
+    def remove_profiles_with_non_increasing_time(self) -> None:
+        if not is_ndarray(self.time.data):
+            raise TypeError
+        mask = _non_increasing_time_mask(self.time.data)
         for attr_name in self.__dataclass_fields__.keys():
             halo_attr = getattr(self, attr_name)
             if (
@@ -366,5 +390,26 @@ def _duplicate_time_mask(time: np.ndarray) -> np.ndarray:
     _mask = np.isclose(np.diff(time), 0)
     nremoved = _mask.sum()
     if nremoved > 0:
-        log.debug("Removed %d profiles (duplicate timestamps)", nremoved)
+        log.debug("Removed %d/%d profiles (duplicate timestamps)", nremoved, len(time))
     return np.logical_not(np.insert(_mask, 0, False))
+
+
+def _non_increasing_time_mask(time: np.ndarray) -> np.ndarray:
+    if len(time) == 0:
+        return np.zeros_like(time, dtype=bool)
+    _mask = np.zeros_like(time, dtype=bool)
+    largest_time = time[0]
+    for i, current_time in enumerate(time[1:], start=1):
+        if current_time <= largest_time:
+            _mask[i] = True
+        else:
+            largest_time = current_time
+    nremoved = _mask.sum()
+    if nremoved > 0:
+        log.debug(
+            "Removed %d/%d profiles (non-increasing timestamps)", nremoved, len(time)
+        )
+    mask = np.logical_not(_mask)
+    if not is_ndarray(mask):
+        raise TypeError
+    return mask
