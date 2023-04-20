@@ -5,11 +5,17 @@
 ### Added
 
 ### Changed
-- Ignore profiles where timestamps are not increasing
 
 ### Deprecated
 
 ### Removed
+
+### Fixed
+
+## [0.1.0] - 2023-04-20
+
+### Changed
+- Ignore profiles where timestamps are not increasing
 
 ### Fixed
 
@@ -62,3 +68,4 @@
 [0.0.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.7
 [0.0.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.8
 [0.0.9]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.9
+[0.1.0]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.0
