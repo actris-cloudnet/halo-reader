@@ -12,6 +12,11 @@
 
 ### Fixed
 
+## [0.1.1] - 2023-04-25
+
+### Changed
+- Skip invalid input files in `read` function
+
 ## [0.1.0] - 2023-04-20
 
 ### Changed
@@ -69,3 +74,4 @@
 [0.0.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.8
 [0.0.9]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.0.9
 [0.1.0]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.0
+[0.1.1]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.1
