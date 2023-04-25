@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- raise error if range gate indexing is inconsitent
 
 ### Changed
 

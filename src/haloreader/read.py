@@ -19,7 +19,12 @@ from haloreader.metadata import Metadata
 from haloreader.utils import UNIX_TIME_UNIT
 from haloreader.variable import Variable
 
-from .exceptions import FileEmpty, HeaderNotFound, UnexpectedDataTokens
+from .exceptions import (
+    FileEmpty,
+    HeaderNotFound,
+    InconsistentRangeError,
+    UnexpectedDataTokens,
+)
 from .transformer import HeaderTransformer
 
 log = logging.getLogger(__name__)
@@ -43,6 +48,8 @@ def _read_single(src: Path | BytesIO) -> Halo:
         raise TypeError
     read_data(data_bytes, metadata.ngates.data, time_vars, time_range_vars)
     vars_ = {var.name: var for var in time_vars + time_range_vars}
+    if not _range_consistent(vars_["range"]):
+        raise InconsistentRangeError
     vars_["time"] = _decimaltime2timestamp(vars_["time"], metadata)
     vars_["range"] = range_func(vars_["range"], metadata.gate_range)
     return Halo(metadata=metadata, **vars_)
@@ -56,6 +63,7 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         except (
             FileEmpty,
             HeaderNotFound,
+            InconsistentRangeError,
             UnicodeDecodeError,
             UnexpectedInput,
             UnexpectedDataTokens,
@@ -63,6 +71,19 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
             log.warning("Skipping file", exc_info=err)
     log.info("Merging files")
     return Halo.merge(halos)
+
+
+def _range_consistent(range_var: Variable) -> bool:
+    if not isinstance(range_var.dimensions, tuple):
+        raise TypeError
+    if not isinstance(range_var.data, np.ndarray):
+        raise TypeError
+    if len(range_var.dimensions) != 2 or range_var.dimensions[1] != "range":
+        return False
+    expected_range = np.arange(range_var.data.shape[1], dtype=range_var.data.dtype)
+    if all(np.allclose(expected_range, r) for r in range_var.data):
+        return True
+    return False
 
 
 def read_bg(

@@ -10,6 +10,10 @@ class UnexpectedDataTokens(Exception):
     pass
 
 
+class InconsistentRangeError(Exception):
+    pass
+
+
 class MergeError(Exception):
     pass
 
