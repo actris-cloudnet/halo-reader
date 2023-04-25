@@ -7,7 +7,7 @@ import pytest
 from cfchecker import cfchecks
 
 from haloreader.exceptions import FileEmpty, UnexpectedDataTokens
-from haloreader.read import read, read_bg
+from haloreader.read import _read_single, read, read_bg
 
 raw_files_pass = Path("tests/raw-files/pass/")
 raw_files_xfail = Path("tests/raw-files/xfail/")
@@ -90,13 +90,13 @@ def test_warsaw():
 def test_xfail_warsaw():
     src = raw_files_xfail.joinpath("warsaw-2021-10-01-Stare_213_20211001_18.hpl")
     with pytest.raises(UnexpectedDataTokens):
-        read([src])
+        _read_single(src)
 
 
 def test_xfail_empty():
     src = raw_files_xfail.joinpath("empty.hpl")
     with pytest.raises(FileEmpty):
-        read([src])
+        _read_single(src)
 
 
 def test_eriswil_background():

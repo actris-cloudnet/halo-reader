@@ -9,6 +9,7 @@ from typing import Sequence
 import lark
 import numpy as np
 import numpy.typing as npt
+from lark.exceptions import UnexpectedInput
 
 from haloreader.background_reader import read_background
 from haloreader.data_reader import read_data
@@ -18,7 +19,7 @@ from haloreader.metadata import Metadata
 from haloreader.utils import UNIX_TIME_UNIT
 from haloreader.variable import Variable
 
-from .exceptions import FileEmpty, HeaderNotFound
+from .exceptions import FileEmpty, HeaderNotFound, UnexpectedDataTokens
 from .transformer import HeaderTransformer
 
 log = logging.getLogger(__name__)
@@ -31,22 +32,35 @@ header_parser = lark.Lark(
 )
 
 
+def _read_single(src: Path | BytesIO) -> Halo:
+    header_end, header_bytes = _read_header(src)
+    metadata, time_vars, time_range_vars, range_func = header_parser.parse(
+        header_bytes.decode()
+    )
+    log.info("Reading data from %s", metadata.filename.value)
+    data_bytes = _read_data(src, header_end)
+    if not isinstance(metadata.ngates.data, int):
+        raise TypeError
+    read_data(data_bytes, metadata.ngates.data, time_vars, time_range_vars)
+    vars_ = {var.name: var for var in time_vars + time_range_vars}
+    vars_["time"] = _decimaltime2timestamp(vars_["time"], metadata)
+    vars_["range"] = range_func(vars_["range"], metadata.gate_range)
+    return Halo(metadata=metadata, **vars_)
+
+
 def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
     halos = []
     for src in src_files:
-        header_end, header_bytes = _read_header(src)
-        metadata, time_vars, time_range_vars, range_func = header_parser.parse(
-            header_bytes.decode()
-        )
-        log.info("Reading data from %s", metadata.filename.value)
-        data_bytes = _read_data(src, header_end)
-        if not isinstance(metadata.ngates.data, int):
-            raise TypeError
-        read_data(data_bytes, metadata.ngates.data, time_vars, time_range_vars)
-        vars_ = {var.name: var for var in time_vars + time_range_vars}
-        vars_["time"] = _decimaltime2timestamp(vars_["time"], metadata)
-        vars_["range"] = range_func(vars_["range"], metadata.gate_range)
-        halos.append(Halo(metadata=metadata, **vars_))
+        try:
+            halos.append(_read_single(src))
+        except (
+            FileEmpty,
+            HeaderNotFound,
+            UnicodeDecodeError,
+            UnexpectedInput,
+            UnexpectedDataTokens,
+        ) as err:
+            log.warning("Skipping file", exc_info=err)
     log.info("Merging files")
     return Halo.merge(halos)
 
