@@ -16,8 +16,11 @@ def compute_noise_screen(intensity: Variable, doppler_velocity: Variable) -> Var
     )
     bad_gates = np.zeros_like(intensity.data, dtype=bool)
     bad_gates[:, :3] = True
+    below_one = intensity.data < 1
     return Variable(
         name="noise_screen",
         dimensions=intensity.dimensions,
-        data=np.logical_not(intensity_mean_mask | velocity_abs_mean_mask) | bad_gates,
+        data=np.logical_not(intensity_mean_mask | velocity_abs_mean_mask)
+        | bad_gates
+        | below_one,
     )

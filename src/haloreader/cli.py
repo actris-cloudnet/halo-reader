@@ -50,11 +50,17 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
     if args.plot:
         log.info("Create plots")
         writer = Writer()
-        fig, ax = plt.subplots(3, 1, figsize=(24, 16))
+        fig, ax = plt.subplots(nplots := 6, 1, figsize=(24, nplots * 6))
         halo.intensity_raw.plot(ax[0])
         halo.doppler_velocity.plot(ax[1])
         if halo.intensity is not None:
             halo.intensity.plot(ax[2])
+        if halo.beta is not None:
+            halo.beta.plot(ax[3])
+        if halo.beta_screened is not None:
+            halo.beta_screened.plot(ax[4])
+        if halo.doppler_velocity_screened is not None:
+            halo.doppler_velocity_screened.plot(ax[5])
 
         writer.add_figure(f"halo_{args.site}_{args.date}", fig)
 

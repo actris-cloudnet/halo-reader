@@ -122,6 +122,8 @@ class Variable:
             _plot_background(self, ax)
         elif "doppler_velocity" in self.name:
             _plot_doppler_velocity(self, ax)
+        elif "beta" in self.name:
+            _plot_beta(self, ax)
         else:
             raise NotImplementedError(
                 f"Plotting not implemented for variable {self.name}"
@@ -152,12 +154,27 @@ def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-uni
     ax.set_title(var.name)
 
 
+def _plot_beta(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    if not isinstance(var.data, np.ndarray):
+        raise TypeError
+    vmin, vmax = (1e-7, 1e-4)
+    ax.imshow(
+        var.data.T,
+        origin="lower",
+        aspect="auto",
+        interpolation="none",
+        vmin=vmin,
+        vmax=vmax,
+    )
+    ax.set_title(var.name)
+
+
 def _plot_doppler_velocity(  # type: ignore[no-any-unimported]
     var: Variable, ax: Axes
 ) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
-    vdelta = 10
+    vdelta = 4
     vmin, vmax = (-vdelta, vdelta)
     ax.imshow(
         var.data.T,

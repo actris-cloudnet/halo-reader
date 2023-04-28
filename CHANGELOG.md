@@ -3,9 +3,11 @@
 ## [Unreleased]
 
 ### Added
-- raise error if range gate indexing is inconsitent
+- Raise error if range gate indexing is inconsitent
+- Add plotting for beta and screened variables
 
 ### Changed
+- Screen values where intensity is below one
 
 ### Deprecated
 
