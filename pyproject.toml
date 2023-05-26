@@ -35,9 +35,9 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/actris-cloudnet/halo-reader"
-repository = "https://github.com/actris-cloudnet/halo-reader"
-changelog = "https://github.com/actris-cloudnet/halo-reader/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/actris-cloudnet/halo-reader"
+Repository = "https://github.com/actris-cloudnet/halo-reader"
+Changelog = "https://github.com/actris-cloudnet/halo-reader/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/actris-cloudnet/halo-reader/issues"
 
 [project.optional-dependencies]
