@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import logging
+from enum import Enum
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ import matplotlib.pyplot as plt
 from haloboard.writer import Writer
 from halodata.datasets import get_halo_cloudnet
 from haloreader.read import read, read_bg
+from haloreader.scangroup import ScanGroup
 from haloreader.type_guards import is_ndarray
 
 log = logging.getLogger(__name__)
@@ -24,13 +26,56 @@ def halo_reader() -> None:
         raise NotImplementedError
 
 
+class Product(Enum):
+    WIND = "wind"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 def _from_cloudnet(args: argparse.Namespace) -> None:
-    halo, halobg = get_halo_cloudnet(site=args.site, date=args.date)
+    match args.product:
+        case Product.WIND:
+            _process_wind(args)
+        case _:
+            _process_stare(args)
+
+
+def _process_wind(args: argparse.Namespace) -> None:
+    halo, halobg = get_halo_cloudnet(
+        site=args.site, date=args.date, scangroup=ScanGroup.VAD
+    )
+    if halo is None:
+        log.warning("No data from %s on %s", args.site, args.date)
+        return
+    writer = Writer()
+    fig, ax = plt.subplots(nplots := 5, 1, figsize=(24, nplots * 6))
+    # n = len(halo.time.data)//12
+
+    # ax[0].plot(halo.time.data[:n], halo.azimuth.data[:n], marker='.')
+    # ax[1].plot(halo.time.data[:n], halo.pitch.data[:n], marker='.')
+    # ax[2].plot(halo.time.data[:n], halo.roll.data[:n], marker='.')
+
+    wind = halo.compute_wind()
+    wind.meridional_wind.plot(ax[0])
+    wind.zonal_wind.plot(ax[1])
+    wind.vertical_wind.plot(ax[2])
+    wind.horizontal_wind_speed.plot(ax[3])
+    wind.horizontal_wind_direction.plot(ax[4])
+
+    writer.add_figure(f"wind-{args.site}_{args.date}", fig)
+
+
+def _process_stare(args: argparse.Namespace) -> None:
+    halo, halobg = get_halo_cloudnet(
+        site=args.site, date=args.date, scangroup=ScanGroup.STARE
+    )
     if halo is None:
         log.warning("No data from %s on %s", args.site, args.date)
         return
     if halobg is None:
         raise TypeError
+
     log.info("Correct background")
     halo.correct_background(halobg)
     log.info("Compute beta")
@@ -122,18 +167,18 @@ def _haloreader_args() -> argparse.Namespace:
 
 
 def _from_cloudnet_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("-p", "--plot", action="store_true")
-    parser.add_argument("-s", "--site", type=str, default="warsaw")
+    parser.add_argument("--plot", action="store_true")
+    parser.add_argument("--site", type=str, default="warsaw")
     parser.add_argument(
-        "-d",
         "--date",
         type=datetime.date.fromisoformat,
         default=datetime.date.today() - datetime.timedelta(days=1),
     )
+    parser.add_argument("--product", type=Product, choices=list(Product))
 
 
 def _from_raw_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("-p", "--plot", action="store_true")
+    parser.add_argument("--plot", action="store_true")
     parser.add_argument(
         "src",
         type=Path,

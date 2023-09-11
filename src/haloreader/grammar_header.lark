@@ -88,6 +88,9 @@ scantype_enum: STARE
               | WIND_PROFILE
               | WIND_PROFILE_OVERLAPPING
               | RHI
+              | S_VAD_70_STEPPED
+              | S_12_STARE_STEPPED
+
 
 STARE: "Stare"
 STARE_OVERLAPPING: "Stare - overlapping"
@@ -102,6 +105,8 @@ USER2_CSM: "User file 2 - csm"
 WIND_PROFILE: "Wind profile"
 WIND_PROFILE_OVERLAPPING: "Wind profile - overlapping"
 RHI: "RHI"
+S_VAD_70_STEPPED: "S_vad_70 - stepped"
+S_12_STARE_STEPPED: "S_12stare - stepped"
 
 INTEGER: /[0-9]+/
 DECIMAL: /[-+]?/ INTEGER ("." INTEGER)?

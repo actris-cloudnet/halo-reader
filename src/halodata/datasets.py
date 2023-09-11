@@ -8,6 +8,7 @@ import urllib3
 
 from haloreader.halo import Halo, HaloBg
 from haloreader.read import read, read_bg
+from haloreader.scangroup import ScanGroup
 from haloreader.scantype import ScanType
 
 log = logging.getLogger(__name__)
@@ -39,25 +40,48 @@ class Session(requests.Session):
 
 
 def get_halo_cloudnet(
-    site: str, date: datetime.date, scantype: ScanType = ScanType.STARE
+    site: str, date: datetime.date, scangroup: ScanGroup = ScanGroup.STARE
 ) -> tuple[Halo | None, HaloBg | None]:
     ses = Session()
     log.info("Fetching metadata for %s", date)
     records = ses.get_metadata(
         site, date_from=date - datetime.timedelta(days=30), date_to=date
     )
-    bg_records = [r for r in records if HaloBg.is_bgfilename(r["filename"])]
+    bg_records = [
+        r
+        for r in records
+        if HaloBg.is_bgfilename(r["filename"]) and "cross" not in set(r["tags"])
+    ]
     halo_records = [
         r
         for r in records
         if r["measurementDate"] == date.isoformat()
-        and ScanType.from_filename(r["filename"]) == scantype
-        and "cross" not in r.get("tags", [])
+        and Halo.is_hplfilename(r["filename"])
+        and "cross" not in set(r["tags"])
     ]
-    halo_bytes = [_recor2bytes(r, ses) for r in halo_records]
+    if scangroup == ScanGroup.STARE:
+        halo_bytes = [
+            _recor2bytes(r, ses)
+            for r in halo_records
+            if ScanType.from_filename(r["filename"]) == ScanType.STARE
+        ]
+    else:
+        halo_bytes = [
+            _recor2bytes(r, ses)
+            for r in halo_records
+            if ScanType.from_filename(r["filename"]) != ScanType.STARE
+        ]
+        halo_bytes = [b for b in halo_bytes if _filter_by_scan_group(b, scangroup)]
+
     bg_bytes = [_recor2bytes(r, ses) for r in bg_records]
     bg_filenames = [r["filename"] for r in bg_records]
     return read(halo_bytes), read_bg(bg_bytes, bg_filenames)
+
+
+def _filter_by_scan_group(raw_io: BytesIO, scangroup: ScanGroup) -> bool:
+    halo = read([raw_io])
+    raw_io.seek(0)
+    return scangroup == ScanGroup.from_halo(halo)
 
 
 def _recor2bytes(record: dict, session: Session) -> BytesIO:

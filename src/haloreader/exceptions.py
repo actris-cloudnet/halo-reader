@@ -32,3 +32,11 @@ class BackgroundReadError(HaloException):
 
 class BackgroundCorrectionError(HaloException):
     pass
+
+
+class SuspiciousResult(Exception):
+    pass
+
+
+class UnexpectedInput(Exception):
+    pass

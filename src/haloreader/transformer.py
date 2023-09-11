@@ -227,6 +227,8 @@ class HeaderTransformer(lark.Transformer):
     WIND_PROFILE = lambda self, _: ScanType.WIND_PROFILE
     WIND_PROFILE_OVERLAPPING = lambda self, _: ScanType.WIND_PROFILE_OVERLAPPING
     RHI = lambda self, _: ScanType.RHI
+    S_VAD_70_STEPPED = lambda self, _: ScanType.S_VAD_70_STEPPED
+    S_12_STARE_STEPPED = lambda self, _: ScanType.S_12_STARE_STEPPED
 
     STRING = lambda self, _: _.value
     INTEGER = lambda self, _: int(_.value)

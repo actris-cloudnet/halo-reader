@@ -124,6 +124,12 @@ class Variable:
             _plot_doppler_velocity(self, ax)
         elif "beta" in self.name:
             _plot_beta(self, ax)
+        elif "azimuth" in self.name:
+            _plot_azimuth(self, ax)
+        elif "wind_direction" in self.name:
+            _plot_wind_direction(self, ax)
+        elif "wind" in self.name:
+            _plot_wind(self, ax)
         else:
             raise NotImplementedError(
                 f"Plotting not implemented for variable {self.name}"
@@ -192,6 +198,39 @@ def _plot_background(var: Variable, ax: Axes) -> None:
     mean = var.data.mean()
     std = var.data.std()
     vmin, vmax = (mean - std, mean + std)
+    ax.imshow(
+        var.data.T,
+        origin="lower",
+        vmin=vmin,
+        vmax=vmax,
+        aspect="auto",
+        interpolation="none",
+    )
+    ax.set_title(var.name)
+
+
+def _plot_azimuth(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    if not isinstance(var.data, np.ndarray):
+        raise TypeError
+    ax.plot(var.data, marker=".")
+    ax.set_title(var.name)
+
+
+def _plot_wind(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    vmin, vmax = (-3, 3)
+    ax.imshow(
+        var.data.T,
+        origin="lower",
+        vmin=vmin,
+        vmax=vmax,
+        aspect="auto",
+        interpolation="none",
+    )
+    ax.set_title(var.name)
+
+
+def _plot_wind_direction(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    vmin, vmax = (0, 360)
     ax.imshow(
         var.data.T,
         origin="lower",

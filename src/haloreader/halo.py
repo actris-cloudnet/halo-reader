@@ -12,6 +12,7 @@ import numpy as np
 import haloreader.attenuated_backscatter_coefficient
 import haloreader.background_correction
 import haloreader.screen
+import haloreader.wind
 from haloreader.metadata import Metadata
 from haloreader.type_guards import is_fancy_index, is_ndarray, is_none_list
 from haloreader.utils import CLOUDNET_TIME_UNIT_FMT, UNIX_TIME_FMT, UNIX_TIME_UNIT
@@ -83,6 +84,10 @@ class Halo:
         if not _is_increasing(halo.time.data):
             raise ValueError("Time must be increasing")
         return halo
+
+    @classmethod
+    def is_hplfilename(cls, filename: str) -> bool:
+        return filename.lower().endswith(".hpl")
 
     def remove_profiles_with_duplicate_time(self) -> None:
         if not is_ndarray(self.time.data):
@@ -195,6 +200,12 @@ class Halo:
             dimensions=self.doppler_velocity.dimensions,
             data=np.ma.masked_array(self.doppler_velocity.data, mask=screen.data),
         )
+
+    def compute_wind(self) -> HaloWind:
+        wind_dict = haloreader.wind.compute_wind(
+            self.time, self.elevation, self.azimuth, self.doppler_velocity
+        )
+        return HaloWind(metadata=self.metadata, range=self.range, **wind_dict)
 
 
 def _convert_timevar_unit2cloudnet_time(var: Variable) -> None:
@@ -413,3 +424,16 @@ def _non_increasing_time_mask(time: np.ndarray) -> np.ndarray:
     if not is_ndarray(mask):
         raise TypeError
     return mask
+
+
+@dataclass(slots=True)
+class HaloWind:
+    metadata: Metadata
+    time: Variable
+    range: Variable
+    elevation: Variable
+    meridional_wind: Variable
+    zonal_wind: Variable
+    vertical_wind: Variable
+    horizontal_wind_speed: Variable
+    horizontal_wind_direction: Variable

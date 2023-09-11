@@ -18,6 +18,8 @@ class ScanType(Enum):
     WIND_PROFILE = auto()
     WIND_PROFILE_OVERLAPPING = auto()
     RHI = auto()
+    S_VAD_70_STEPPED = auto()
+    S_12_STARE_STEPPED = auto()
 
     def __str__(self) -> str:
         return str(self.name)
