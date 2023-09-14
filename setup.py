@@ -8,10 +8,6 @@ if __name__ == "__main__":
             name="haloreader.data_reader",
             sources=["src/haloreader/data_reader/data_reader.pyx"],
         ),
-        Extension(
-            name="haloreader.background_reader",
-            sources=["src/haloreader/background_reader/background_reader.pyx"],
-        ),
     ]
     setup(
         ext_modules=cythonize(

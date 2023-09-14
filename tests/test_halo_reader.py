@@ -7,7 +7,7 @@ import pytest
 from cfchecker import cfchecks
 
 from haloreader.exceptions import FileEmpty, UnexpectedDataTokens
-from haloreader.read import _read_single, read, read_bg
+from haloreader.read import _read_single, read
 
 raw_files_pass = Path("tests/raw-files/pass/")
 raw_files_xfail = Path("tests/raw-files/xfail/")
@@ -112,25 +112,3 @@ def test_xfail_empty():
     src = raw_files_xfail.joinpath("empty.hpl")
     with pytest.raises(FileEmpty):
         _read_single(src)
-
-
-def test_eriswil_background():
-    bg_dir = raw_files_pass.joinpath("eriswil-2022-12-14-background")
-    bg_00 = bg_dir.joinpath("Background_141222-000013.txt")
-    bg_01 = bg_dir.joinpath("Background_141222-010013.txt")
-    halobg = read_bg([bg_00, bg_01])
-
-    def timestr_fun(unix_time):
-        return datetime.datetime.utcfromtimestamp(unix_time).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-
-    times = [timestr_fun(t) for t in halobg.time.data]
-    assert times[0] == "2022-12-14 00:00:13"
-    assert times[1] == "2022-12-14 01:00:13"
-    bg = halobg.background
-    assert bg.dimensions == ("time", "range")
-    assert np.isclose(bg.data[0, 0], 610890.0)
-    assert np.isclose(bg.data[0, 1], 14318556.375)
-    assert np.isclose(bg.data[-1, -2], 16885681.125)
-    assert np.isclose(bg.data[-1, -1], 16881329.375)
