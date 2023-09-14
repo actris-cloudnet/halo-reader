@@ -7,33 +7,31 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - name: Install build and twine
+      - name: Install build
         run: >-
           python -m
-          pip install build twine --user
+          pip install build --user
       - name: Build a source tarball
         run: >-
           python -m
           build --sdist --outdir dist/ .
       - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: >-
-          python -m
-          twine upload dist/*
+        uses: pypa/gh-action-pypi-publish@release/v1
       # Uncomment when there's something worth of releasing
       #- name: Generate changelog
       #  run: |
       #    version=${GITHUB_REF#refs/tags/v}
       #    sed "0,/^## \\[\\?${version//./\\.}/d;/^## /,\$d" CHANGELOG.md > ${{ github.workspace }}-CHANGELOG.txt
-      #    echo "::set-output name=name::HALO reader $version"
+      #    echo "name=HALO reader $version" >> $GITHUB_OUTPUT
       #  id: changelog
       #- name: Create release
       #  uses: softprops/action-gh-release@v1
