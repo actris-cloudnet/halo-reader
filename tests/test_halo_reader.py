@@ -87,6 +87,21 @@ def test_warsaw():
     _check_cf_conventions(buf)
 
 
+def test_hyytiala():
+    src = raw_files_pass.joinpath("hyytiala-2023-09-13-Stare_46_20230913_23.hpl")
+    halo = read([src])
+    assert halo.time.data.shape == (1,)
+    assert halo.azimuth.data.shape == (1,)
+    assert halo.elevation.data.shape == (1,)
+    assert halo.pitch is None
+    assert halo.roll is None
+    assert halo.intensity_raw.data.shape == (1, 320)
+    assert halo.beta_raw.data.shape == (1, 320)
+    assert halo.doppler_velocity.data.shape == (1, 320)
+    buf = halo.to_nc()
+    _check_cf_conventions(buf)
+
+
 def test_xfail_warsaw():
     src = raw_files_xfail.joinpath("warsaw-2021-10-01-Stare_213_20211001_18.hpl")
     with pytest.raises(UnexpectedDataTokens):

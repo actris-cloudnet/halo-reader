@@ -27,8 +27,6 @@ class Halo:
     range: Variable
     azimuth: Variable
     elevation: Variable
-    pitch: Variable
-    roll: Variable
     doppler_velocity: Variable
     intensity_raw: Variable
     beta_raw: Variable
@@ -37,6 +35,8 @@ class Halo:
     beta: Variable | None = None
     beta_screened: Variable | None = None
     doppler_velocity_screened: Variable | None = None
+    pitch: Variable | None = None
+    roll: Variable | None = None
 
     def to_nc(
         self,
