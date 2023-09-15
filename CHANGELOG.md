@@ -12,6 +12,12 @@
 
 ### Fixed
 
+## [0.1.4] - 2023-09-15
+
+### Fixed
+- Handle background file with zeros
+- Support background file without newlines
+
 ## [0.1.3] - 2023-09-14
 
 ### Fixed
@@ -91,3 +97,4 @@
 [0.1.1]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.1
 [0.1.2]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.2
 [0.1.3]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.3
+[0.1.4]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.4
