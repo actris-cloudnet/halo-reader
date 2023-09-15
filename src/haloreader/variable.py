@@ -115,7 +115,7 @@ class Variable:
             data=data,
         )
 
-    def plot(self, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+    def plot(self, ax: Axes) -> None:
         if "intensity" in self.name:
             _plot_intensity(self, ax)
         elif "background" in self.name:
@@ -138,7 +138,7 @@ class VariableWithNumpyData(Protocol):
     dimensions: tuple[str, ...]
 
 
-def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+def _plot_intensity(var: Variable, ax: Axes) -> None:
     vdelta = 1e-3
     vmin, vmax = (1 - vdelta, 1 + vdelta)
     if not isinstance(var.data, np.ndarray):
@@ -154,7 +154,7 @@ def _plot_intensity(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-uni
     ax.set_title(var.name)
 
 
-def _plot_beta(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+def _plot_beta(var: Variable, ax: Axes) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     vmin, vmax = (1e-7, 1e-4)
@@ -169,9 +169,7 @@ def _plot_beta(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimport
     ax.set_title(var.name)
 
 
-def _plot_doppler_velocity(  # type: ignore[no-any-unimported]
-    var: Variable, ax: Axes
-) -> None:
+def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     vdelta = 4
@@ -188,9 +186,7 @@ def _plot_doppler_velocity(  # type: ignore[no-any-unimported]
     ax.set_title(var.name)
 
 
-def _plot_background(  # type: ignore[no-any-unimported]
-    var: Variable, ax: Axes
-) -> None:
+def _plot_background(var: Variable, ax: Axes) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     mean = var.data.mean()

@@ -10,7 +10,7 @@ class Writer:
         self.root = pathlib.Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def add_figure(self, name: str, fig: Figure) -> None:  # type: ignore
+    def add_figure(self, name: str, fig: Figure) -> None:
         pth = pathlib.Path(self.root, f"{name}.{IMAGE_EXT}")
         fig.savefig(pth, bbox_inches="tight")
 
