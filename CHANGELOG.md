@@ -12,6 +12,11 @@
 
 ### Fixed
 
+## [0.1.5] - 2023-09-22
+
+### Changed
+- Skip files with different number of gates
+
 ## [0.1.4] - 2023-09-15
 
 ### Fixed
@@ -98,3 +103,4 @@
 [0.1.2]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.2
 [0.1.3]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.3
 [0.1.4]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.4
+[0.1.5]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.5
