@@ -70,7 +70,18 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         ) as err:
             log.warning("Skipping file", exc_info=err)
     log.info("Merging files")
-    return Halo.merge(halos)
+    max_ngates = max(
+        halo.metadata.ngates.data
+        for halo in halos
+        if isinstance(halo.metadata.ngates.data, int)
+    )
+    filtered_halos = [halo for halo in halos if halo.metadata.ngates.data == max_ngates]
+    if len(halos) != len(filtered_halos):
+        log.warning(
+            "Skipping %s files with different number of gates",
+            len(halos) - len(filtered_halos),
+        )
+    return Halo.merge(filtered_halos)
 
 
 def _range_consistent(range_var: Variable) -> bool:
