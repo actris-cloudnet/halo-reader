@@ -1,4 +1,7 @@
+import logging
+
 import numpy as np
+from numpy import ma
 from scipy.ndimage import gaussian_filter
 from scipy.signal import medfilt2d
 
@@ -13,6 +16,7 @@ def background_measurement_correction(
     time_bg: Variable,
     bg: Variable,
     p_amp: Variable,
+    doppler_velocity: Variable,
 ) -> Variable:
     """
     References
@@ -32,12 +36,21 @@ def background_measurement_correction(
         raise TypeError
     if not is_ndarray(p_amp.data):
         raise TypeError
-    try:
-        intensity_index2bg_index = _previous_measurement_map(time.data, time_bg.data)
-    except ValueError as err:
+    intensity_index2bg_index = _previous_measurement_map(time.data, time_bg.data)
+    n_masked = np.count_nonzero(intensity_index2bg_index.mask)
+    n_total = len(intensity_index2bg_index)
+    if n_masked == n_total:
         raise BackgroundCorrectionError(
             "Cannot find matching background measurement for all profiles"
-        ) from err
+        )
+    elif n_masked > 0:
+        logging.info(
+            "Didn't find matching background measurement for {n_masked}/{n_total} profiles"
+        )
+        time.data = time.data[~intensity_index2bg_index.mask]
+        intensity.data = intensity.data[~intensity_index2bg_index.mask]
+        doppler_velocity.data = doppler_velocity.data[~intensity_index2bg_index.mask]
+        intensity_index2bg_index = intensity_index2bg_index.compressed()
     relevant_bg_indeces = sorted(list(set(intensity_index2bg_index)))
     relevant_bg_indeces_map = {v: i for i, v in enumerate(relevant_bg_indeces)}
     intensity_index2relevant_bg_index = np.array(
@@ -101,7 +114,7 @@ def _previous_measurement_map(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     j = 0
     n_a = len(a)
     n_b = len(b)
-    c: list[int | None] = [None] * n_a
+    c = ma.array(np.zeros(n_a), mask=True, dtype=int)
     while i < n_a and j < n_b:
         if b[j] <= a[i] and (j == n_b - 1 or a[i] < b[j + 1]):
             c[i] = j
@@ -110,9 +123,7 @@ def _previous_measurement_map(a: np.ndarray, b: np.ndarray) -> np.ndarray:
             i += 1
         else:
             j += 1
-    if None in c:
-        raise ValueError
-    return np.array(c, dtype=int)
+    return c
 
 
 def threshold_signalmask(
