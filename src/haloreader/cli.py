@@ -76,6 +76,7 @@ def _from_raw(args: argparse.Namespace) -> None:
     if halo is None:
         log.warning("No data")
         return
+
     halobg = read_bg(bg_src)
     if halobg:
         if not is_ndarray(halobg.background.data):
