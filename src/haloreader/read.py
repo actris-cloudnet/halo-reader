@@ -124,6 +124,7 @@ def read_bg(
             for bg in halobgs
             if isinstance(bg.background.data, np.ndarray)
             and bg.background.data.shape[1] == most_common_ngates
+            and not np.all(np.isclose(bg.background.data, 0))
         ]
     )
 

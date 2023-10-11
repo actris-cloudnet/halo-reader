@@ -345,13 +345,8 @@ class HaloBg:
     def amplifier_noise(self) -> Variable:
         if not HaloBg.is_halobg_with_numpy_data(self):
             raise TypeError
-        _sum_over_gates = self.background.data.sum(axis=1)[:, np.newaxis]
-        _normalised_bg = np.divide(
-            self.background.data,
-            _sum_over_gates,
-            out=np.zeros_like(self.background.data),
-            where=_sum_over_gates != 0,
-        )
+        _sum_over_gates = self.background.data.sum(axis=1)
+        _normalised_bg = self.background.data / _sum_over_gates[:, np.newaxis]
         return Variable(
             name="p_amp",
             long_name=(
