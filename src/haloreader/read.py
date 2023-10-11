@@ -1,6 +1,7 @@
 import logging
 import pkgutil
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from io import BufferedReader, BytesIO
 from pathlib import Path
@@ -70,18 +71,15 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         ) as err:
             log.warning("Skipping file", exc_info=err)
     log.info("Merging files")
-    max_ngates = max(
+    _most_common_ngates = Counter(
         halo.metadata.ngates.data
         for halo in halos
         if isinstance(halo.metadata.ngates.data, int)
+    ).most_common(1)
+    most_common_ngates = _most_common_ngates[0][0] if _most_common_ngates else None
+    return Halo.merge(
+        [halo for halo in halos if halo.metadata.ngates.data == most_common_ngates]
     )
-    filtered_halos = [halo for halo in halos if halo.metadata.ngates.data == max_ngates]
-    if len(halos) != len(filtered_halos):
-        log.warning(
-            "Skipping %s files with different number of gates",
-            len(halos) - len(filtered_halos),
-        )
-    return Halo.merge(filtered_halos)
 
 
 def _range_consistent(range_var: Variable) -> bool:
@@ -114,7 +112,20 @@ def read_bg(
             data=np.arange(background.data.shape[1]),
         )
         halobgs.append(HaloBg(time=time, background=background, range=range_))
-    return HaloBg.merge(halobgs)
+    _most_common_ngates = Counter(
+        bg.background.data.shape[1]
+        for bg in halobgs
+        if isinstance(bg.background.data, np.ndarray)
+    ).most_common(1)
+    most_common_ngates = _most_common_ngates[0][0] if _most_common_ngates else None
+    return HaloBg.merge(
+        [
+            bg
+            for bg in halobgs
+            if isinstance(bg.background.data, np.ndarray)
+            and bg.background.data.shape[1] == most_common_ngates
+        ]
+    )
 
 
 def _bgfname2timevar(fname: str) -> Variable:
