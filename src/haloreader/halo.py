@@ -144,6 +144,7 @@ class Halo:
                 halobg_sliced.time,
                 halobg_sliced.background,
                 p_amp,
+                self.doppler_velocity,
             )
         )
         signalmask = haloreader.background_correction.threshold_signalmask(
