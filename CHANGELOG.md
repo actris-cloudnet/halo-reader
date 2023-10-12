@@ -12,20 +12,17 @@
 
 ### Fixed
 
-## [0.1.6] - 2023-10-11
+## [0.1.7] - 2023-10-12
 
 ### Added
+- HaloException
+
+## [0.1.6] - 2023-10-11
 
 ### Changed
 - Cython reader for bg files without newlines
 - Use the most common number of gates when merging files
 - Filter zero bg files
-
-### Deprecated
-
-### Removed
-
-### Fixed
 
 ## [0.1.5] - 2023-09-22
 
@@ -120,3 +117,4 @@
 [0.1.4]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.4
 [0.1.5]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.5
 [0.1.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.6
+[0.1.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.7
