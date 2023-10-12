@@ -1,30 +1,34 @@
-class FileEmpty(Exception):
+class HaloException(Exception):
     pass
 
 
-class HeaderNotFound(Exception):
+class FileEmpty(HaloException):
     pass
 
 
-class UnexpectedDataTokens(Exception):
+class HeaderNotFound(HaloException):
     pass
 
 
-class InconsistentRangeError(Exception):
+class UnexpectedDataTokens(HaloException):
     pass
 
 
-class MergeError(Exception):
+class InconsistentRangeError(HaloException):
     pass
 
 
-class NetCDFWriteError(Exception):
+class MergeError(HaloException):
     pass
 
 
-class BackgroundReadError(Exception):
+class NetCDFWriteError(HaloException):
     pass
 
 
-class BackgroundCorrectionError(Exception):
+class BackgroundReadError(HaloException):
+    pass
+
+
+class BackgroundCorrectionError(HaloException):
     pass
