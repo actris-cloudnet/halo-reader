@@ -12,6 +12,14 @@
 
 ### Fixed
 
+## [0.1.8] - 2023-10-17
+
+### Changed
+- Ignore lower gates based on range insted off simply masking first 3
+
+### Fixed
+- In halodata/cli ignore records with cross tag
+
 ## [0.1.7] - 2023-10-12
 
 ### Added
@@ -118,3 +126,4 @@
 [0.1.5]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.5
 [0.1.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.6
 [0.1.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.7
+[0.1.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.8
