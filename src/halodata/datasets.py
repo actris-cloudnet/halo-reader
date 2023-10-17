@@ -44,7 +44,7 @@ def get_halo_cloudnet(
     ses = Session()
     log.info("Fetching metadata for %s", date)
     records = ses.get_metadata(
-        site, date_from=date - datetime.timedelta(days=60), date_to=date
+        site, date_from=date - datetime.timedelta(days=30), date_to=date
     )
     bg_records = [r for r in records if HaloBg.is_bgfilename(r["filename"])]
     halo_records = [
@@ -52,6 +52,7 @@ def get_halo_cloudnet(
         for r in records
         if r["measurementDate"] == date.isoformat()
         and ScanType.from_filename(r["filename"]) == scantype
+        and "cross" not in r.get("tags", [])
     ]
     halo_bytes = [_recor2bytes(r, ses) for r in halo_records]
     bg_bytes = [_recor2bytes(r, ses) for r in bg_records]
