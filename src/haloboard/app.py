@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 parser = argparse.ArgumentParser("haloboard")
 parser.add_argument("--dir", type=pathlib.Path, default=pathlib.Path(DEFAULT_ROOT))
+parser.add_argument("--port", type=int, default=5000)
 args = parser.parse_args()
 app = flask.Flask(
     __name__,
@@ -44,7 +45,7 @@ def serve_static(name: str) -> flask.wrappers.Response:
 
 
 def run() -> None:
-    app.run(debug=True)
+    app.run(debug=True, port=args.port)
 
 
 if __name__ == "__main__":

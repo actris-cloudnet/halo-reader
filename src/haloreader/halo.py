@@ -168,7 +168,7 @@ class Halo:
         if not isinstance(self.intensity, Variable):
             raise TypeError
         return haloreader.screen.compute_noise_screen(
-            self.intensity, self.doppler_velocity
+            self.intensity, self.doppler_velocity, self.range
         )
 
     def compute_beta_screened(self, screen: Variable) -> None:
