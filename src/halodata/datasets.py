@@ -3,6 +3,7 @@ import logging
 import pathlib
 from io import BytesIO
 
+import netCDF4
 import requests
 import urllib3
 
@@ -20,19 +21,35 @@ class Session(requests.Session):
         retries = urllib3.util.retry.Retry(total=10, backoff_factor=0.2)
         adapter = requests.adapters.HTTPAdapter(max_retries=retries)
         self.mount("https://", adapter)
-        self.url = "https://cloudnet.fmi.fi/api/raw-files"
+        self.url_raw = "https://cloudnet.fmi.fi/api/raw-files"
+        self.url_model = "https://cloudnet.fmi.fi/api/model-files"
+        self.url_sites = "https://cloudnet.fmi.fi/api/sites"
+
+    def get_sites_metadata(self) -> list:
+        records = self.get(self.url_sites).json()
+        if not isinstance(records, list):
+            raise TypeError
+        return records
 
     def get_metadata(
         self, site: str, date_from: datetime.date, date_to: datetime.date
     ) -> list:
         records = self.get(
-            self.url,
+            self.url_raw,
             params={
                 "instrument": "halo-doppler-lidar",
                 "site": site,
                 "dateFrom": str(date_from),
                 "dateTo": str(date_to),
             },
+        ).json()
+        if not isinstance(records, list):
+            raise TypeError
+        return records
+
+    def get_metadata_models(self, site: str, date: datetime.date) -> list:
+        records = self.get(
+            self.url_model, params={"site": site, "date": str(date)}
         ).json()
         if not isinstance(records, list):
             raise TypeError
@@ -97,3 +114,23 @@ def _recor2bytes(record: dict, session: Session) -> BytesIO:
             f.write(file_bytes)
         file_io = BytesIO(file_bytes)
     return file_io
+
+
+def get_model_cloudnet(site: str, date: datetime.date) -> netCDF4.Dataset | None:
+    ses = Session()
+    records = ses.get_metadata_models(site, date)
+    if len(records) == 0:
+        return None
+    if len(records) > 1:
+        raise NotImplementedError
+    _bytes = _recor2bytes(records[0], ses)
+    return netCDF4.Dataset("inmemory.nc", memory=_bytes.read())
+
+
+def get_site_cloudnet(site: str) -> dict:
+    ses = Session()
+    records = ses.get_sites_metadata()
+    record, *_ = [r for r in records if r.get("id") == site]
+    if isinstance(record, dict):
+        return record
+    raise TypeError

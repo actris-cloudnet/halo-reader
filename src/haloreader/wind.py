@@ -6,7 +6,11 @@ from haloreader.variable import Variable
 
 
 def compute_wind(
-    time: Variable, elevation: Variable, azimuth: Variable, radial_velocity: Variable
+    time: Variable,
+    range_: Variable,
+    elevation: Variable,
+    azimuth: Variable,
+    radial_velocity: Variable,
 ) -> dict[str, Variable]:
     """
     Parameters
@@ -17,6 +21,8 @@ def compute_wind(
     azimuth
         Azimuth from North
     """
+
+    # TODO: Check the component directions!! There is probably something shady
 
     timediff = np.diff(time.data).reshape(-1, 1)
     kmeans = KMeans(n_clusters=2, n_init="auto").fit(timediff)
@@ -38,6 +44,9 @@ def compute_wind(
     wind_elevation_ = []
     wind_components_ = []
 
+    if len(elevation.data) == 0 or (not np.allclose(elevation.data, elevation.data[0])):
+        raise UnexpectedInput
+
     for j in range(nscans):
         pick_scan = scan_indeces == j
         time_ = time.data[pick_scan]
@@ -50,8 +59,6 @@ def compute_wind(
                 np.newaxis, :, :
             ]
         )
-        if len(elevation_) == 0 or (not np.allclose(elevation_, elevation_[0])):
-            raise UnexpectedInput
         wind_elevation_.append(elevation_[0])
     wind_components = np.concatenate(wind_components_)
     wind_time = np.array(wind_time_)
@@ -63,20 +70,35 @@ def compute_wind(
         wind_components[:, :, 0], wind_components[:, :, 1]
     )
     horizontal_wind_direction[horizontal_wind_direction < 0] += 2 * np.pi
+    height = range_.data * np.sin(np.deg2rad(elevation.data[0]))
     return {
-        "time": Variable(name="time", data=wind_time),
+        "time": Variable(
+            name=time.name,
+            long_name=time.long_name,
+            calendar=time.calendar,
+            units=time.units,
+            dimensions=time.dimensions,
+            data=wind_time,
+        ),
+        "height": Variable(
+            name="height",
+            long_name="Height above instrument",
+            dimensions=range_.dimensions,
+            units=range_.units,
+            data=height,
+        ),
         "elevation": Variable(name="elevation", data=wind_elevation),
         "meridional_wind": Variable(
             name="meridional_wind",
             dimensions=radial_velocity.dimensions,
             units=radial_velocity.units,
-            data=wind_components[:, :, 0],
+            data=wind_components[:, :, 1],
         ),
         "zonal_wind": Variable(
             name="zonal_wind",
             dimensions=radial_velocity.dimensions,
             units=radial_velocity.units,
-            data=wind_components[:, :, 1],
+            data=wind_components[:, :, 0],
         ),
         "vertical_wind": Variable(
             name="vertical_wind",
@@ -102,12 +124,14 @@ def compute_wind(
 def _compute_wind_components(
     elevation: np.ndarray, azimuth: np.ndarray, radial_velocity: np.ndarray
 ):
-    cos_elevation = np.cos(elevation)
+    _elevation = np.deg2rad(elevation)
+    _azimuth = np.deg2rad(azimuth)
+    cos_elevation = np.cos(_elevation)
     A = np.hstack(
         (
-            (np.sin(azimuth) * cos_elevation).reshape(-1, 1),
-            (np.cos(azimuth) * cos_elevation).reshape(-1, 1),
-            (np.sin(elevation)).reshape(-1, 1),
+            (np.sin(_azimuth) * cos_elevation).reshape(-1, 1),
+            (np.cos(_azimuth) * cos_elevation).reshape(-1, 1),
+            (np.sin(_elevation)).reshape(-1, 1),
         )
     )
     A_inv = np.linalg.pinv(A)

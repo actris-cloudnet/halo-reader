@@ -6,22 +6,19 @@ build-backend = "setuptools.build_meta"
 name = "halo-reader"
 description = "HALO Photonics wind doppler lidar file reader"
 dynamic = ["version"]
-authors = [
-  { name="Niko Leskinen", email="niko.leskinen@fmi.fi" },
-]
+authors = [{ name = "Niko Leskinen", email = "niko.leskinen@fmi.fi" }]
 requires-python = ">=3.10"
 readme = "README.md"
-license = { file="LICENSE" }
+license = { file = "LICENSE" }
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
-    "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
 ]
-
 dependencies = [
   "cython",
   "numpy",
@@ -32,6 +29,8 @@ dependencies = [
   "requests",
   "scikit-learn",
   "scipy",
+  "pytz",
+  "cftime",
 ]
 
 [project.urls]
@@ -61,14 +60,13 @@ haloboard = "haloboard.app:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
 [tool.setuptools.dynamic]
-version = {attr = "haloreader.version.__version__"}
+version = { attr = "haloreader.version.__version__" }
 
 [tool.pytest.ini_options]
 addopts = "--cov=haloreader --cov-report html"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.mypy]
@@ -80,9 +78,11 @@ no_implicit_optional = true
 show_error_codes = true
 warn_return_any = true
 warn_unused_ignores = true
+
 [[tool.mypy.overrides]]
 module = "matplotlib.*"
 ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = "scipy.*"
 ignore_missing_imports = true
@@ -92,7 +92,7 @@ line-length = 88
 target-version = ['py310']
 
 [tool.isort]
-profile= "black"
+profile = "black"
 line_length = 88
 
 [tool.pylint]
@@ -113,4 +113,4 @@ extension-pkg-whitelist = [
   "netCDF4",
   "haloreader.background_reader",
   "haloreader.data_reader",
-  ]
+]

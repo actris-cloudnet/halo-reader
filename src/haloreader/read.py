@@ -71,14 +71,19 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
         ) as err:
             log.warning("Skipping file", exc_info=err)
     log.info("Merging files")
-    _most_common_ngates = Counter(
-        halo.metadata.ngates.data
-        for halo in halos
-        if isinstance(halo.metadata.ngates.data, int)
+    _most_common_ngates_scantype = Counter(
+        (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
     ).most_common(1)
-    most_common_ngates = _most_common_ngates[0][0] if _most_common_ngates else None
+    most_common_ngates_scantype = (
+        _most_common_ngates_scantype[0][0] if _most_common_ngates_scantype else None
+    )
     return Halo.merge(
-        [halo for halo in halos if halo.metadata.ngates.data == most_common_ngates]
+        [
+            halo
+            for halo in halos
+            if (halo.metadata.ngates.data, halo.metadata.scantype.value)
+            == most_common_ngates_scantype
+        ]
     )
 
 

@@ -203,7 +203,7 @@ class Halo:
 
     def compute_wind(self) -> HaloWind:
         wind_dict = haloreader.wind.compute_wind(
-            self.time, self.elevation, self.azimuth, self.doppler_velocity
+            self.time, self.range, self.elevation, self.azimuth, self.doppler_velocity
         )
         return HaloWind(metadata=self.metadata, range=self.range, **wind_dict)
 
@@ -431,6 +431,7 @@ class HaloWind:
     metadata: Metadata
     time: Variable
     range: Variable
+    height: Variable
     elevation: Variable
     meridional_wind: Variable
     zonal_wind: Variable

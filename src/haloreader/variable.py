@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Protocol, TypeAlias, TypeGuard, runtime_checkable
 
+import cftime
 import netCDF4
 import numpy as np
+import pytz
 from matplotlib.axes import Axes
 
 from haloreader.exceptions import MergeError, NetCDFWriteError
@@ -15,6 +18,7 @@ from haloreader.type_guards import (
     is_ndarray,
     is_ndarray_list,
 )
+from haloreader.utils import UNIX_TIME_UNIT
 
 DataType: TypeAlias = np.ndarray | int | float | None
 
@@ -68,6 +72,46 @@ class Variable:
                 setattr(nc_var, attr_name, attr_val)
 
     @classmethod
+    def from_nc(cls, nc: netCDF4.Dataset, name: str) -> Variable:
+        nc_var = nc[name]
+        if nc_var[:].mask != False:
+            raise NotImplementedError
+        return Variable(
+            **{
+                attr_name: getattr(nc_var, attr_name)
+                for attr_name in set(cls.__dataclass_fields__.keys())
+                & set(nc_var.ncattrs())
+            },
+            data=nc_var[:].data,
+            name=name,
+            dimensions=nc_var.dimensions,
+        )
+
+    def __getitem__(self, index: slice):
+        return Variable.like(self, data=self.data[index])
+
+    def median(self, axis: int | None = None) -> Variable:
+        if axis is None:
+            comment = "Median over (" + ",".join(self.dimensions) + ")."
+            dimensions = ()
+        elif isinstance(axis, int):
+            dim = self.dimensions[axis]
+            comment = f"Median over {dim}"
+            dimensions = self.dimensions[:axis] + self.dimensions[axis + 1 :]
+        else:
+            raise NotImplementedError
+        return Variable(
+            **{
+                attr_name: getattr(self, attr_name)
+                for attr_name in set(self.__dataclass_fields__.keys())
+                - {"data", "dimensions", "comment"}
+            },
+            data=np.median(self.data, axis=axis),
+            dimensions=dimensions,
+            comment=f"{self.comment} {comment}" if self.comment else comment,
+        )
+
+    @classmethod
     def like(
         cls,
         var: Variable,
@@ -115,21 +159,23 @@ class Variable:
             data=data,
         )
 
-    def plot(self, ax: Axes) -> None:
+    def plot(
+        self, ax: Axes, time: Variable | None = None, height: Variable | None = None
+    ) -> None:
         if "intensity" in self.name:
-            _plot_intensity(self, ax)
+            _plot_intensity(self, ax, time, height)
         elif "background" in self.name:
-            _plot_background(self, ax)
+            _plot_background(self, ax, time, height)
         elif "doppler_velocity" in self.name:
-            _plot_doppler_velocity(self, ax)
+            _plot_doppler_velocity(self, ax, time, height)
         elif "beta" in self.name:
-            _plot_beta(self, ax)
+            _plot_beta(self, ax, time, height)
         elif "azimuth" in self.name:
-            _plot_azimuth(self, ax)
+            _plot_azimuth(self, ax, time, height)
         elif "wind_direction" in self.name:
-            _plot_wind_direction(self, ax)
+            _plot_wind_direction(self, ax, time, height)
         elif "wind" in self.name:
-            _plot_wind(self, ax)
+            _plot_wind(self, ax, time, height)
         else:
             raise NotImplementedError(
                 f"Plotting not implemented for variable {self.name}"
@@ -144,7 +190,9 @@ class VariableWithNumpyData(Protocol):
     dimensions: tuple[str, ...]
 
 
-def _plot_intensity(var: Variable, ax: Axes) -> None:
+def _plot_intensity(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
     vdelta = 1e-3
     vmin, vmax = (1 - vdelta, 1 + vdelta)
     if not isinstance(var.data, np.ndarray):
@@ -160,7 +208,9 @@ def _plot_intensity(var: Variable, ax: Axes) -> None:
     ax.set_title(var.name)
 
 
-def _plot_beta(var: Variable, ax: Axes) -> None:
+def _plot_beta(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     vmin, vmax = (1e-7, 1e-4)
@@ -175,7 +225,9 @@ def _plot_beta(var: Variable, ax: Axes) -> None:
     ax.set_title(var.name)
 
 
-def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:
+def _plot_doppler_velocity(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     vdelta = 4
@@ -192,7 +244,9 @@ def _plot_doppler_velocity(var: Variable, ax: Axes) -> None:
     ax.set_title(var.name)
 
 
-def _plot_background(var: Variable, ax: Axes) -> None:
+def _plot_background(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     mean = var.data.mean()
@@ -209,37 +263,115 @@ def _plot_background(var: Variable, ax: Axes) -> None:
     ax.set_title(var.name)
 
 
-def _plot_azimuth(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+def _plot_azimuth(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
     if not isinstance(var.data, np.ndarray):
         raise TypeError
     ax.plot(var.data, marker=".")
     ax.set_title(var.name)
 
 
-def _plot_wind(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
-    vmin, vmax = (-3, 3)
-    ax.imshow(
+def _plot_wind(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
+    if height and len(height.dimensions) > 2:
+        raise NotImplementedError
+
+    if height and len(height.dimensions) == 2:
+        height = height.median(axis=0)
+
+    if height and len(height.dimensions) == 1:
+        low = height.data < 3000
+        var = var[:, low]
+        height = height[low]
+
+    if "speed" in var.name:
+        cmap = "Reds"
+        vmin, vmax = (0, 20)
+    else:
+        cmap = "RdBu_r"
+        vmin, vmax = (-20, 20)
+    im = ax.imshow(
         var.data.T,
         origin="lower",
         vmin=vmin,
         vmax=vmax,
         aspect="auto",
+        cmap="RdBu_r",
         interpolation="none",
     )
-    ax.set_title(var.name)
+    if var.long_name:
+        ax.set_title(var.long_name)
+    else:
+        ax.set_title(var.name)
+    ax.figure.colorbar(im, ax=ax)
+
+    _set_time(ax, time)
+    _set_height(ax, height)
 
 
-def _plot_wind_direction(var: Variable, ax: Axes) -> None:  # type: ignore[no-any-unimported]
+def _plot_wind_direction(
+    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+) -> None:
+    if height and len(height.dimensions) > 2:
+        raise NotImplementedError
+
+    if height and len(height.dimensions) == 2:
+        height = height.median(axis=0)
+
+    if height and len(height.dimensions) == 1:
+        low = height.data < 3000
+        var = var[:, low]
+        height = height[low]
+
     vmin, vmax = (0, 360)
-    ax.imshow(
+    im = ax.imshow(
         var.data.T,
         origin="lower",
         vmin=vmin,
         vmax=vmax,
+        cmap="twilight",
         aspect="auto",
         interpolation="none",
     )
     ax.set_title(var.name)
+    ax.figure.colorbar(im, ax=ax)
+    _set_time(ax, time)
+    _set_height(ax, height)
+
+
+def _set_time(ax: Axes, time: Variable | None):
+    if time is None or time.units is None:
+        return
+    if time and time.units == UNIX_TIME_UNIT:
+        time_ = time.data
+
+    else:
+        if "since" not in time.units or not time.units.endswith("+00:00"):
+            raise NotImplementedError
+        time_ = np.array(
+            [
+                float(t.replace(tzinfo=pytz.timezone("UTC")).timestamp())
+                for t in cftime.num2pydate(time.data, units=time.units)
+            ]
+        )
+    step = max(1, len(time_) // 12)
+    ticks = np.arange(len(time_), step=step)
+    dt_time = [datetime.utcfromtimestamp(ts) for ts in time_[ticks]]
+    labels = [dt.strftime("%H:%M") for dt in dt_time]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(labels)
+
+
+def _set_height(ax: Axes, height: Variable | None):
+    if height:
+        height_ = height.data
+        step = max(1, len(height_) // 10)
+        ticks = np.arange(len(height_), step=step)
+        labels = [f"{h:.0f}" for h in height_[ticks]]
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(labels)
 
 
 def _dimension_exists(nc: netCDF4.Dataset | None, dim: str) -> bool:
