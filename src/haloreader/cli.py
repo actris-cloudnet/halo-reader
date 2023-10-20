@@ -58,21 +58,22 @@ def _process_wind(args: argparse.Namespace) -> None:
         raise TypeError
     fig, ax = plt.subplots(nplots, 1, figsize=(24, nplots * 6))
 
-    uwind = Variable.from_nc(nc_model, "uwind")
-    vwind = Variable.from_nc(nc_model, "vwind")
-    wwind = Variable.from_nc(nc_model, "wwind")
-    mspeed = np.sqrt(uwind.data**2 + vwind.data**2)
-    mdirec = np.arctan2(uwind.data, vwind.data)
+    model_zonal = Variable.from_nc(nc_model, "uwind")
+    model_meridional = Variable.from_nc(nc_model, "vwind")
+    model_vertical = Variable.from_nc(nc_model, "wwind")
+    breakpoint()
+    mspeed = np.sqrt(model_zonal.data**2 + model_meridional.data**2)
+    mdirec = np.arctan2(model_zonal.data, model_meridional.data)
     mdirec[mdirec < 0] += 2 * np.pi
     mspeed = Variable(
         name="horizontal_wind_speed_model",
-        dimensions=uwind.dimensions,
-        units=uwind.units,
+        dimensions=model_zonal.dimensions,
+        units=model_zonal.units,
         data=mspeed,
     )
     mdirec = Variable(
         name="horizontal_wind_direction",
-        dimensions=uwind.dimensions,
+        dimensions=model_zonal.dimensions,
         units="degrees",
         data=np.degrees(mdirec),
     )
@@ -92,13 +93,13 @@ def _process_wind(args: argparse.Namespace) -> None:
         )
 
     wind.meridional_wind.plot(ax[0], wind.time, wind.height)
-    vwind.plot(ax[1], mtime, mheight)
+    model_meridional.plot(ax[1], mtime, mheight)
 
     wind.zonal_wind.plot(ax[2], wind.time, wind.height)
-    uwind.plot(ax[3], mtime, mheight)
+    model_zonal.plot(ax[3], mtime, mheight)
 
     wind.vertical_wind.plot(ax[4], wind.time, wind.height)
-    wwind.plot(ax[5], mtime, mheight)
+    model_vertical.plot(ax[5], mtime, mheight)
 
     wind.horizontal_wind_speed.plot(ax[6], wind.time, wind.height)
     mspeed.plot(ax[7], mtime, mheight)

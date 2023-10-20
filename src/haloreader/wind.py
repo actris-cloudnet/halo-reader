@@ -22,8 +22,6 @@ def compute_wind(
         Azimuth from North
     """
 
-    # TODO: Check the component directions!! There is probably something shady
-
     timediff = np.diff(time.data).reshape(-1, 1)
     kmeans = KMeans(n_clusters=2, n_init="auto").fit(timediff)
     centers = kmeans.cluster_centers_.flatten()
@@ -88,17 +86,17 @@ def compute_wind(
             data=height,
         ),
         "elevation": Variable(name="elevation", data=wind_elevation),
-        "meridional_wind": Variable(
-            name="meridional_wind",
-            dimensions=radial_velocity.dimensions,
-            units=radial_velocity.units,
-            data=wind_components[:, :, 1],
-        ),
         "zonal_wind": Variable(
             name="zonal_wind",
             dimensions=radial_velocity.dimensions,
             units=radial_velocity.units,
             data=wind_components[:, :, 0],
+        ),
+        "meridional_wind": Variable(
+            name="meridional_wind",
+            dimensions=radial_velocity.dimensions,
+            units=radial_velocity.units,
+            data=wind_components[:, :, 1],
         ),
         "vertical_wind": Variable(
             name="vertical_wind",
