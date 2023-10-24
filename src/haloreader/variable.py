@@ -297,9 +297,12 @@ def _plot_wind(
         var = var[:, low]
         height = height[low]
 
-    if "speed" in var.name:
+    if "speed" in var.name.lower():
         cmap = "Reds"
         vmin, vmax = (0, 20)
+    elif "vertical" in var.name.lower() or "wwind" in var.name.lower():
+        cmap = "RdBu_r"
+        vmin, vmax = (-2, 2)
     else:
         cmap = "RdBu_r"
         vmin, vmax = (-20, 20)

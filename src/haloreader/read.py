@@ -17,6 +17,7 @@ from haloreader.data_reader import read_data
 from haloreader.exceptions import BackgroundReadError
 from haloreader.halo import Halo, HaloBg
 from haloreader.metadata import Metadata
+from haloreader.product import Product
 from haloreader.utils import UNIX_TIME_UNIT
 from haloreader.variable import Variable
 
@@ -43,7 +44,7 @@ def _read_single(src: Path | BytesIO) -> Halo:
     metadata, time_vars, time_range_vars, range_func = header_parser.parse(
         header_bytes.decode()
     )
-    log.info("Reading data from %s", metadata.filename.value)
+    log.debug("Reading data from %s", metadata.filename.value)
     data_bytes = _read_data(src, header_end)
     if not isinstance(metadata.ngates.data, int):
         raise TypeError
@@ -56,7 +57,7 @@ def _read_single(src: Path | BytesIO) -> Halo:
     return Halo(metadata=metadata, **vars_)
 
 
-def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
+def read(src_files: Sequence[Path | BytesIO], product: Product ) -> Halo | None:
     halos = []
     for src in src_files:
         try:
@@ -70,21 +71,16 @@ def read(src_files: Sequence[Path | BytesIO]) -> Halo | None:
             UnexpectedDataTokens,
         ) as err:
             log.warning("Skipping file", exc_info=err)
-    log.info("Merging files")
-    _most_common_ngates_scantype = Counter(
-        (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
-    ).most_common(1)
-    most_common_ngates_scantype = (
-        _most_common_ngates_scantype[0][0] if _most_common_ngates_scantype else None
-    )
-    return Halo.merge(
-        [
-            halo
-            for halo in halos
-            if (halo.metadata.ngates.data, halo.metadata.scantype.value)
-            == most_common_ngates_scantype
-        ]
-    )
+    log.debug("Merging files")
+    halos = [halo for halo in halos if halo.is_useful_for_product(product)]
+    most_common_ngates_scantype = Halo.most_common_ngates_scantype(halos)
+    halos = [
+        halo
+        for halo in halos
+        if (halo.metadata.ngates.data, halo.metadata.scantype.value)
+        == most_common_ngates_scantype
+    ]
+    return Halo.merge(halos)
 
 
 def _range_consistent(range_var: Variable) -> bool:

@@ -7,8 +7,10 @@ import netCDF4
 import numpy as np
 import requests
 import urllib3
+from joblib import Memory
 
 from haloreader.halo import Halo, HaloBg
+from haloreader.product import Product
 from haloreader.read import read, read_bg
 from haloreader.scangroup import ScanGroup
 from haloreader.scantype import ScanType
@@ -16,6 +18,9 @@ from haloreader.utils import UNIX_TIME_UNIT
 from haloreader.variable import Variable
 
 log = logging.getLogger(__name__)
+
+
+memory = Memory("halodata_cache", verbose=0)
 
 
 class Session(requests.Session):
@@ -59,11 +64,12 @@ class Session(requests.Session):
         return records
 
 
+# @memory.cache
 def get_halo_cloudnet(
-    site: str, date: datetime.date, scangroup: ScanGroup = ScanGroup.STARE
+    site: str, date: datetime.date, product: Product
 ) -> tuple[Halo | None, HaloBg | None]:
     ses = Session()
-    log.info("Fetching metadata for %s", date)
+    log.debug("Fetching metadata for %s", date)
     records = ses.get_metadata(
         site, date_from=date - datetime.timedelta(days=30), date_to=date
     )
@@ -79,23 +85,31 @@ def get_halo_cloudnet(
         and Halo.is_hplfilename(r["filename"])
         and "cross" not in set(r["tags"])
     ]
-    if scangroup == ScanGroup.STARE:
+    if product == Product.STARE:
         halo_bytes = [
             _recor2bytes(r, ses)
             for r in halo_records
-            if ScanType.from_filename(r["filename"]) == ScanType.STARE
+            if r["filename"].lower().startswith("stare")
         ]
     else:
         halo_bytes = [
             _recor2bytes(r, ses)
             for r in halo_records
-            if ScanType.from_filename(r["filename"]) != ScanType.STARE
+            if not r["filename"].lower().startswith("stare")
         ]
-        halo_bytes = [b for b in halo_bytes if _filter_by_scan_group(b, scangroup)]
 
     bg_bytes = [_recor2bytes(r, ses) for r in bg_records]
     bg_filenames = [r["filename"] for r in bg_records]
-    return read(halo_bytes), read_bg(bg_bytes, bg_filenames)
+    return read(halo_bytes, product), read_bg(bg_bytes, bg_filenames)
+
+
+def raw_cloudnet(site: str, date: datetime.date) -> list[dict, BytesIO]:
+    ses = Session()
+    records = ses.get_metadata(
+        site, date_from=date, date_to=date
+    )
+    records = sorted(records, key = lambda r: r["filename"])
+    return list(zip(records, [_recor2bytes(r,ses) for r in records]))
 
 
 def _filter_by_scan_group(raw_io: BytesIO, scangroup: ScanGroup) -> bool:
@@ -110,7 +124,7 @@ def _recor2bytes(record: dict, session: Session) -> BytesIO:
         with path.open("rb") as f:
             file_io = BytesIO(f.read())
     else:
-        log.info("Downloading and caching %s", record["filename"])
+        log.debug("Downloading and caching %s", record["filename"])
         file_bytes = session.get(record["downloadUrl"]).content
         path.parent.mkdir(exist_ok=True)
         with path.open("wb") as f:
@@ -137,80 +151,3 @@ def get_site_cloudnet(site: str) -> dict:
     if isinstance(record, dict):
         return record
     raise TypeError
-
-
-def get_wind_observations(site: str, date: datetime.date):
-    ses = Session()
-    tformat = "%Y-%m-%dT%H:%M:%S"
-    starttime = datetime.datetime.combine(date, datetime.time.min)
-    s = starttime.strftime(tformat)
-    endtime = starttime + datetime.timedelta(days=1)
-    site_rec = get_site_cloudnet(site)
-    lat = site_rec["latitude"]
-    lon = site_rec["longitude"]
-    latlon = f"{lat},{lon}" "52.21,20.98"
-    res = ses.get(
-        "http://smartmet.fmi.fi/timeseries",
-        params={
-            "producer": "foreign",
-            "timestep": "data",
-            "latlon": latlon,
-            "format": "json",
-            "lang": "en",
-            "tz": "utc",
-            "starttime": starttime.strftime(tformat),
-            "endtime": endtime.strftime(tformat),
-            "param": ",".join(
-                [
-                    "stationname",
-                    "distance",
-                    "utctime",
-                    "windspeed",
-                    "winddirection",
-                    "dewpoint",
-                    "humidity",
-                    "pressure",
-                    "temperature",
-                ]
-            ),
-        },
-    )
-    records = res.json() if res.content else []
-    data = [
-        (
-            datetime.datetime.strptime(rec["utctime"], "%Y%m%dT%H%M%S"),
-            rec["windspeed"],
-            rec["winddirection"],
-        )
-        for rec in records
-    ]
-    data_red = [
-        (t.replace(tzinfo=datetime.timezone.utc).timestamp(), v, a)
-        for t, v, a in data
-        if t.date() == date
-    ]
-    if data_red:
-        time, vspeed, vdir = list(zip(*data_red))
-    else:
-        time, vspeed, vdir = [np.array([]) for _ in range(3)]
-    return {
-        "time": Variable(
-            "time",
-            dimensions=("time",),
-            calendar="standard",
-            units=UNIX_TIME_UNIT,
-            data=np.array(time),
-        ),
-        "wind_speed": Variable(
-            "wind_speed_surface_observed",
-            dimensions=("time",),
-            units="m s-1",
-            data=np.array(vspeed),
-        ),
-        "wind_direction": Variable(
-            "wind_direction_surface_observed",
-            dimensions=("time",),
-            units="degrees",
-            data=np.array(vdir),
-        ),
-    }

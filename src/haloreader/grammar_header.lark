@@ -90,6 +90,7 @@ scantype_enum: STARE
               | RHI
               | S_VAD_70_STEPPED
               | S_12_STARE_STEPPED
+              | OTHER_SCANTYPE
 
 
 STARE: "Stare"
@@ -107,6 +108,7 @@ WIND_PROFILE_OVERLAPPING: "Wind profile - overlapping"
 RHI: "RHI"
 S_VAD_70_STEPPED: "S_vad_70 - stepped"
 S_12_STARE_STEPPED: "S_12stare - stepped"
+OTHER_SCANTYPE: STRING
 
 INTEGER: /[0-9]+/
 DECIMAL: /[-+]?/ INTEGER ("." INTEGER)?

@@ -229,6 +229,8 @@ class HeaderTransformer(lark.Transformer):
     RHI = lambda self, _: ScanType.RHI
     S_VAD_70_STEPPED = lambda self, _: ScanType.S_VAD_70_STEPPED
     S_12_STARE_STEPPED = lambda self, _: ScanType.S_12_STARE_STEPPED
+    OTHER_SCANTYPE = lambda self, s: s
+
 
     STRING = lambda self, _: _.value
     INTEGER = lambda self, _: int(_.value)

@@ -3,8 +3,9 @@ from __future__ import annotations
 import datetime
 import logging
 import re
+from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeGuard, runtime_checkable
+from typing import Any, Protocol, Tuple, TypeGuard, runtime_checkable
 
 import netCDF4
 import numpy as np
@@ -13,7 +14,9 @@ import haloreader.attenuated_backscatter_coefficient
 import haloreader.background_correction
 import haloreader.screen
 import haloreader.wind
+from haloreader.exceptions import UnexpectedInput
 from haloreader.metadata import Metadata
+from haloreader.product import Product
 from haloreader.type_guards import is_fancy_index, is_ndarray, is_none_list
 from haloreader.utils import CLOUDNET_TIME_UNIT_FMT, UNIX_TIME_FMT, UNIX_TIME_UNIT
 from haloreader.variable import Variable, VariableWithNumpyData
@@ -84,6 +87,31 @@ class Halo:
         if not _is_increasing(halo.time.data):
             raise ValueError("Time must be increasing")
         return halo
+
+    def is_useful_for_product(self, product: Product) -> bool:
+        if product == Product.WIND:
+            return self._is_useful_for_wind()
+        elif product == Product.STARE:
+            return self._is_useful_for_stare()
+
+    def _is_useful_for_wind(self) -> bool:
+        return (
+            np.all(self.elevation.data > 5)
+            and np.all(self.elevation.data < 85)
+            and (len(set(np.round(self.azimuth.data, 0))) > 2)
+        )
+
+    def _is_useful_for_stare(self) -> bool:
+        return np.allclose(np.round(self.elevation.data, 0), 90)
+
+    @classmethod
+    def most_common_ngates_scantype(cls, halos: list[Halo]) -> Tuple[int, str]:
+        _most_common_ngates_scantype = Counter(
+            (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
+        ).most_common(1)
+        if len(_most_common_ngates_scantype) == 0:
+            raise UnexpectedInput
+        return _most_common_ngates_scantype[0][0]
 
     @classmethod
     def is_hplfilename(cls, filename: str) -> bool:

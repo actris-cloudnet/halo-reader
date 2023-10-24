@@ -1,8 +1,10 @@
 import argparse
 import datetime
 import logging
+import re
 from enum import Enum
 from pathlib import Path
+from itertools import islice
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,8 +14,9 @@ from halodata.datasets import (
     get_halo_cloudnet,
     get_model_cloudnet,
     get_site_cloudnet,
-    get_wind_observations,
+    raw_cloudnet,
 )
+from haloreader.product import Product
 from haloreader.read import read, read_bg
 from haloreader.scangroup import ScanGroup
 from haloreader.type_guards import is_ndarray
@@ -29,15 +32,10 @@ def halo_reader() -> None:
         _from_cloudnet(args)
     elif args.subcommand == "from_raw":
         _from_raw(args)
+    elif args.subcommand == "print_raw_from_cloudnet":
+        _print_raw_from_cloudnet(args)
     else:
         raise NotImplementedError
-
-
-class Product(Enum):
-    WIND = "wind"
-
-    def __str__(self) -> str:
-        return self.value
 
 
 def _from_cloudnet(args: argparse.Namespace) -> None:
@@ -48,17 +46,48 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
             _process_stare(args)
 
 
+def _red(s: str):
+    return f"\033[91m{s}\033[0m"
+
+
+def _blue(s: str):
+    return f"\033[34m{s}\033[0m"
+
+
+def _yellow(s: str):
+    return f"\033[33m{s}\033[0m"
+
+
+def _print_raw_from_cloudnet(args: argparse.Namespace) -> None:
+    data = raw_cloudnet(args.site, args.date)
+    for record, file in data:
+        fname = record["filename"]
+        if (
+            args.include_fname_regexp is not None
+            and re.match(args.include_fname_regexp, fname) is None
+        ):
+            continue
+        if (
+            args.exclude_fname_regexp is not None
+            and re.match(args.exclude_fname_regexp, fname) is not None
+        ):
+            continue
+        print(_red(record["filename"]), _blue(args.site), _yellow(str(args.date)))
+        for i, line in islice(enumerate(file),args.nlines):
+            print(line.decode().strip())
+
+
 def _process_wind(args: argparse.Namespace) -> None:
+    log.info(f"Processing wind {args.site} {args.date}")
     halo, halobg = get_halo_cloudnet(
-        site=args.site, date=args.date, scangroup=ScanGroup.VAD
+        site=args.site, date=args.date, product=Product.WIND
     )
     site = get_site_cloudnet(args.site)
     if halo is None:
         log.warning("No data from %s on %s", args.site, args.date)
         return
     writer = Writer()
-    nplots = 2 * 5 + 2
-    obs = get_wind_observations(args.site, args.date)
+    nplots = 2 * 5 - 1
     nc_model = get_model_cloudnet(args.site, args.date)
     if nc_model is None:
         raise TypeError
@@ -105,21 +134,19 @@ def _process_wind(args: argparse.Namespace) -> None:
     model_zonal.plot(ax[3], mtime, mheight)
 
     wind.vertical_wind.plot(ax[4], wind.time, wind.height)
-    model_vertical.plot(ax[5], mtime, mheight)
 
-    wind.horizontal_wind_speed.plot(ax[6], wind.time, wind.height)
-    mspeed.plot(ax[7], mtime, mheight)
-    obs["wind_speed"].plot(ax[8], obs["time"])
+    wind.horizontal_wind_speed.plot(ax[5], wind.time, wind.height)
+    mspeed.plot(ax[6], mtime, mheight)
 
-    wind.horizontal_wind_direction.plot(ax[9], wind.time, wind.height)
-    mdirec.plot(ax[10], mtime, mheight)
+    wind.horizontal_wind_direction.plot(ax[7], wind.time, wind.height)
+    mdirec.plot(ax[8], mtime, mheight)
 
     writer.add_figure(f"wind-{args.site}_{args.date}", fig)
 
 
 def _process_stare(args: argparse.Namespace) -> None:
     halo, halobg = get_halo_cloudnet(
-        site=args.site, date=args.date, scangroup=ScanGroup.STARE
+        site=args.site, date=args.date, product=Product.STARE
     )
     if halo is None:
         log.warning("No data from %s on %s", args.site, args.date)
@@ -213,6 +240,11 @@ def _haloreader_args() -> argparse.Namespace:
             "from_raw", help="Read and background correct raw files into netCDF"
         )
     )
+    _print_raw_from_cloudnet_args(
+        subparsers.add_parser(
+            "print_raw_from_cloudnet", help="Prints raw files to stdout from cloudnet"
+        )
+    )
 
     return parser.parse_args()
 
@@ -225,7 +257,9 @@ def _from_cloudnet_args(parser: argparse.ArgumentParser) -> None:
         type=datetime.date.fromisoformat,
         default=datetime.date.today() - datetime.timedelta(days=1),
     )
-    parser.add_argument("--product", type=Product, choices=list(Product))
+    parser.add_argument(
+        "--product", type=Product, default=Product.STARE, choices=list(Product)
+    )
 
 
 def _from_raw_args(parser: argparse.ArgumentParser) -> None:
@@ -238,3 +272,15 @@ def _from_raw_args(parser: argparse.ArgumentParser) -> None:
         help="Raw and background files in an arbitrary order",
     )
     parser.add_argument("-o", "--output", type=Path, required=True)
+
+
+def _print_raw_from_cloudnet_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--site", type=str, default="warsaw")
+    parser.add_argument(
+        "--date",
+        type=datetime.date.fromisoformat,
+        default=datetime.date.today() - datetime.timedelta(days=1),
+    )
+    parser.add_argument("--nlines", type=int, default=16)
+    parser.add_argument("--include-fname-regexp", type=str)
+    parser.add_argument("--exclude-fname-regexp", type=str)
