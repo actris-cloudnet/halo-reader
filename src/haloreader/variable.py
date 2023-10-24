@@ -272,9 +272,20 @@ def _plot_azimuth(
     ax.set_title(var.name)
 
 
+def _plot_wind_observed_surface(
+    var: Variable, ax: Axes, time: Varriable | None
+) -> None:
+    ax.plot(var.data)
+    _set_time(ax, time)
+
+
 def _plot_wind(
     var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
 ) -> None:
+    if "observed" in var.name and "surface" in var.name:
+        _plot_wind_observed_surface(var, ax, time)
+        return
+
     if height and len(height.dimensions) > 2:
         raise NotImplementedError
 
@@ -305,7 +316,23 @@ def _plot_wind(
         ax.set_title(var.long_name)
     else:
         ax.set_title(var.name)
+
     ax.figure.colorbar(im, ax=ax)
+
+    # from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    # cbar_ax = inset_axes(
+    #    ax,
+    #    width="5%",
+    #    height="50%",
+    #    loc="upper right",
+    #    bbox_to_anchor=(1.05, 1, 1, 1),
+    #    bbox_transform=ax.transAxes,
+    #    borderpad=0,
+    # )
+
+    ## cbar_ax = ax.figure.add_axes([0.75, 0.95, 0.15, 0.03])
+    # ax.figure.colorbar(im, cax=cbar_ax, orientation="vertical")
 
     _set_time(ax, time)
     _set_height(ax, height)

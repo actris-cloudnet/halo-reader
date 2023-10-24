@@ -4,6 +4,7 @@ import pathlib
 from io import BytesIO
 
 import netCDF4
+import numpy as np
 import requests
 import urllib3
 
@@ -11,6 +12,8 @@ from haloreader.halo import Halo, HaloBg
 from haloreader.read import read, read_bg
 from haloreader.scangroup import ScanGroup
 from haloreader.scantype import ScanType
+from haloreader.utils import UNIX_TIME_UNIT
+from haloreader.variable import Variable
 
 log = logging.getLogger(__name__)
 
@@ -134,3 +137,80 @@ def get_site_cloudnet(site: str) -> dict:
     if isinstance(record, dict):
         return record
     raise TypeError
+
+
+def get_wind_observations(site: str, date: datetime.date):
+    ses = Session()
+    tformat = "%Y-%m-%dT%H:%M:%S"
+    starttime = datetime.datetime.combine(date, datetime.time.min)
+    s = starttime.strftime(tformat)
+    endtime = starttime + datetime.timedelta(days=1)
+    site_rec = get_site_cloudnet(site)
+    lat = site_rec["latitude"]
+    lon = site_rec["longitude"]
+    latlon = f"{lat},{lon}" "52.21,20.98"
+    res = ses.get(
+        "http://smartmet.fmi.fi/timeseries",
+        params={
+            "producer": "foreign",
+            "timestep": "data",
+            "latlon": latlon,
+            "format": "json",
+            "lang": "en",
+            "tz": "utc",
+            "starttime": starttime.strftime(tformat),
+            "endtime": endtime.strftime(tformat),
+            "param": ",".join(
+                [
+                    "stationname",
+                    "distance",
+                    "utctime",
+                    "windspeed",
+                    "winddirection",
+                    "dewpoint",
+                    "humidity",
+                    "pressure",
+                    "temperature",
+                ]
+            ),
+        },
+    )
+    records = res.json() if res.content else []
+    data = [
+        (
+            datetime.datetime.strptime(rec["utctime"], "%Y%m%dT%H%M%S"),
+            rec["windspeed"],
+            rec["winddirection"],
+        )
+        for rec in records
+    ]
+    data_red = [
+        (t.replace(tzinfo=datetime.timezone.utc).timestamp(), v, a)
+        for t, v, a in data
+        if t.date() == date
+    ]
+    if data_red:
+        time, vspeed, vdir = list(zip(*data_red))
+    else:
+        time, vspeed, vdir = [np.array([]) for _ in range(3)]
+    return {
+        "time": Variable(
+            "time",
+            dimensions=("time",),
+            calendar="standard",
+            units=UNIX_TIME_UNIT,
+            data=np.array(time),
+        ),
+        "wind_speed": Variable(
+            "wind_speed_surface_observed",
+            dimensions=("time",),
+            units="m s-1",
+            data=np.array(vspeed),
+        ),
+        "wind_direction": Variable(
+            "wind_direction_surface_observed",
+            dimensions=("time",),
+            units="degrees",
+            data=np.array(vdir),
+        ),
+    }

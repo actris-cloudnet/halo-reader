@@ -8,7 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from haloboard.writer import Writer
-from halodata.datasets import get_halo_cloudnet, get_model_cloudnet, get_site_cloudnet
+from halodata.datasets import (
+    get_halo_cloudnet,
+    get_model_cloudnet,
+    get_site_cloudnet,
+    get_wind_observations,
+)
 from haloreader.read import read, read_bg
 from haloreader.scangroup import ScanGroup
 from haloreader.type_guards import is_ndarray
@@ -52,16 +57,17 @@ def _process_wind(args: argparse.Namespace) -> None:
         log.warning("No data from %s on %s", args.site, args.date)
         return
     writer = Writer()
-    nplots = 2 * 5
+    nplots = 2 * 5 + 2
+    obs = get_wind_observations(args.site, args.date)
     nc_model = get_model_cloudnet(args.site, args.date)
     if nc_model is None:
         raise TypeError
+
     fig, ax = plt.subplots(nplots, 1, figsize=(24, nplots * 6))
 
     model_zonal = Variable.from_nc(nc_model, "uwind")
     model_meridional = Variable.from_nc(nc_model, "vwind")
     model_vertical = Variable.from_nc(nc_model, "wwind")
-    breakpoint()
     mspeed = np.sqrt(model_zonal.data**2 + model_meridional.data**2)
     mdirec = np.arctan2(model_zonal.data, model_meridional.data)
     mdirec[mdirec < 0] += 2 * np.pi
@@ -103,9 +109,10 @@ def _process_wind(args: argparse.Namespace) -> None:
 
     wind.horizontal_wind_speed.plot(ax[6], wind.time, wind.height)
     mspeed.plot(ax[7], mtime, mheight)
+    obs["wind_speed"].plot(ax[8], obs["time"])
 
-    wind.horizontal_wind_direction.plot(ax[8], wind.time, wind.height)
-    mdirec.plot(ax[9], mtime, mheight)
+    wind.horizontal_wind_direction.plot(ax[9], wind.time, wind.height)
+    mdirec.plot(ax[10], mtime, mheight)
 
     writer.add_figure(f"wind-{args.site}_{args.date}", fig)
 
