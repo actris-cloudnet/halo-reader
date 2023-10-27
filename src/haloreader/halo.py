@@ -5,7 +5,7 @@ import logging
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Protocol, Tuple, TypeGuard, runtime_checkable
+from typing import Any, Protocol, Set, Tuple, TypeGuard, runtime_checkable
 
 import netCDF4
 import numpy as np
@@ -41,6 +41,12 @@ class Halo:
     doppler_velocity_screened: Variable | None = None
     pitch: Variable | None = None
     roll: Variable | None = None
+
+    def print_head(self) -> None:
+        for attr_name in self.__dataclass_fields__.keys():
+            halo_attr = getattr(self, attr_name)
+            if isinstance(halo_attr, Variable):
+                halo_attr.print_head()
 
     def to_nc(
         self,
@@ -96,19 +102,31 @@ class Halo:
 
     def _is_useful_for_wind(self) -> bool:
         return (
-            np.all(self.elevation.data > 5)
+            len(set(np.round(self.elevation.data, 1))) == 1
+            and np.all(self.elevation.data > 5)
             and np.all(self.elevation.data < 85)
-            and (len(set(np.round(self.azimuth.data, 0))) > 2)
+            and (
+                len(set(np.round(self.azimuth.data, 0))) > 3
+            )  # Require more than 3 angles, otherwise fits perfectly
         )
 
     def _is_useful_for_stare(self) -> bool:
         return np.allclose(np.round(self.elevation.data, 0), 90)
 
     @classmethod
+    def ngates_scantype_pairs(cls, halos: list[Halo]) -> set[Tuple[int, str]]:
+        return set(
+            (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
+        )
+
+    @classmethod
     def most_common_ngates_scantype(cls, halos: list[Halo]) -> Tuple[int, str]:
         _most_common_ngates_scantype = Counter(
             (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
         ).most_common(1)
+        count = Counter(
+            (halo.metadata.ngates.data, halo.metadata.scantype.value) for halo in halos
+        )
         if len(_most_common_ngates_scantype) == 0:
             raise UnexpectedInput
         return _most_common_ngates_scantype[0][0]
@@ -229,9 +247,27 @@ class Halo:
             data=np.ma.masked_array(self.doppler_velocity.data, mask=screen.data),
         )
 
-    def compute_wind(self) -> HaloWind:
+    def compute_wind(self, halobg: HaloBg) -> HaloWind:
+        if not is_ndarray(self.range.data):
+            raise TypeError
+        halobg_sliced = halobg.slice_range(len(self.range.data))
+        p_amp = halobg_sliced.amplifier_noise()
+        intensity_bg_corrected = (
+            haloreader.background_correction.background_measurement_correction(
+                self.time,
+                self.intensity_raw,
+                halobg_sliced.time,
+                halobg_sliced.background,
+                p_amp,
+            )
+        )
         wind_dict = haloreader.wind.compute_wind(
-            self.time, self.range, self.elevation, self.azimuth, self.doppler_velocity
+            self.time,
+            self.range,
+            self.elevation,
+            self.azimuth,
+            self.doppler_velocity,
+            intensity_bg_corrected,
         )
         return HaloWind(metadata=self.metadata, range=self.range, **wind_dict)
 
@@ -466,3 +502,4 @@ class HaloWind:
     vertical_wind: Variable
     horizontal_wind_speed: Variable
     horizontal_wind_direction: Variable
+    mask: np.ndarray

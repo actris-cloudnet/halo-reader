@@ -57,7 +57,7 @@ def _read_single(src: Path | BytesIO) -> Halo:
     return Halo(metadata=metadata, **vars_)
 
 
-def read(src_files: Sequence[Path | BytesIO], product: Product ) -> Halo | None:
+def read(src_files: Sequence[Path | BytesIO], product: Product) -> Halo | None:
     halos = []
     for src in src_files:
         try:
@@ -72,15 +72,40 @@ def read(src_files: Sequence[Path | BytesIO], product: Product ) -> Halo | None:
         ) as err:
             log.warning("Skipping file", exc_info=err)
     log.debug("Merging files")
-    halos = [halo for halo in halos if halo.is_useful_for_product(product)]
     most_common_ngates_scantype = Halo.most_common_ngates_scantype(halos)
-    halos = [
-        halo
-        for halo in halos
-        if (halo.metadata.ngates.data, halo.metadata.scantype.value)
-        == most_common_ngates_scantype
-    ]
-    return Halo.merge(halos)
+    ngates_scantype_pairs = Halo.ngates_scantype_pairs(halos)
+    halo_groups = []
+    for ngates_scantype_pair in ngates_scantype_pairs:
+        halos_filtered = [
+            halo
+            for halo in halos
+            if (halo.metadata.ngates.data, halo.metadata.scantype.value)
+            == ngates_scantype_pair
+        ]
+        halo_groups.append(Halo.merge(halos_filtered))
+    match product:
+        case Product.STARE:
+            halos_stare = [
+                h for h in halo_groups if h.is_useful_for_product(Product.STARE)
+            ]
+            if len(halos_stare) == 0:
+                return None
+            ntimes = [len(h.time.data) for h in halos_stare]
+            pick_halo = np.argmax(ntimes)
+            return halos_stare[pick_halo]
+        case Product.WIND:
+            halos_wind = [
+                h for h in halo_groups if h.is_useful_for_product(Product.WIND)
+            ]
+            if len(halos_wind) == 0:
+                return None
+            n_azimuth_angles = [
+                len(set(np.round(h.azimuth.data, 0))) for h in halos_wind
+            ]
+            pick_halo = np.argmax(n_azimuth_angles)
+            return halos_wind[pick_halo]
+        case _:
+            raise NotImplementedError
 
 
 def _range_consistent(range_var: Variable) -> bool:

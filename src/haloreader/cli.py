@@ -3,8 +3,8 @@ import datetime
 import logging
 import re
 from enum import Enum
-from pathlib import Path
 from itertools import islice
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,14 +20,15 @@ from haloreader.product import Product
 from haloreader.read import read, read_bg
 from haloreader.scangroup import ScanGroup
 from haloreader.type_guards import is_ndarray
+from haloreader.utils import color_blue, color_red, color_yellow
 from haloreader.variable import Variable
 
 log = logging.getLogger(__name__)
 
 
 def halo_reader() -> None:
-    logging.basicConfig(level=logging.INFO)
     args = _haloreader_args()
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
     if args.subcommand == "from_cloudnet":
         _from_cloudnet(args)
     elif args.subcommand == "from_raw":
@@ -46,18 +47,6 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
             _process_stare(args)
 
 
-def _red(s: str):
-    return f"\033[91m{s}\033[0m"
-
-
-def _blue(s: str):
-    return f"\033[34m{s}\033[0m"
-
-
-def _yellow(s: str):
-    return f"\033[33m{s}\033[0m"
-
-
 def _print_raw_from_cloudnet(args: argparse.Namespace) -> None:
     data = raw_cloudnet(args.site, args.date)
     for record, file in data:
@@ -72,8 +61,12 @@ def _print_raw_from_cloudnet(args: argparse.Namespace) -> None:
             and re.match(args.exclude_fname_regexp, fname) is not None
         ):
             continue
-        print(_red(record["filename"]), _blue(args.site), _yellow(str(args.date)))
-        for i, line in islice(enumerate(file),args.nlines):
+        print(
+            color_red(record["filename"]),
+            color_blue(args.site),
+            color_yellow(str(args.date)),
+        )
+        for i, line in islice(enumerate(file), args.nlines):
             print(line.decode().strip())
 
 
@@ -87,7 +80,7 @@ def _process_wind(args: argparse.Namespace) -> None:
         log.warning("No data from %s on %s", args.site, args.date)
         return
     writer = Writer()
-    nplots = 2 * 5 - 1
+    nplots = 2 * 5
     nc_model = get_model_cloudnet(args.site, args.date)
     if nc_model is None:
         raise TypeError
@@ -116,7 +109,8 @@ def _process_wind(args: argparse.Namespace) -> None:
     mheight = Variable.from_nc(nc_model, "height")
     mtime = Variable.from_nc(nc_model, "time")
 
-    wind = halo.compute_wind()
+    wind = halo.compute_wind(halobg)
+
     site_altitude = site.get("altitude")
     if isinstance(site_altitude, (float, int)):
         wind.height = Variable(
@@ -136,10 +130,13 @@ def _process_wind(args: argparse.Namespace) -> None:
     wind.vertical_wind.plot(ax[4], wind.time, wind.height)
 
     wind.horizontal_wind_speed.plot(ax[5], wind.time, wind.height)
-    mspeed.plot(ax[6], mtime, mheight)
+    wind.horizontal_wind_speed.plot(ax[6], wind.time, wind.height, mask=wind.mask)
+    ax[6].set_title("with mask")
+    mspeed.plot(ax[7], mtime, mheight)
 
-    wind.horizontal_wind_direction.plot(ax[7], wind.time, wind.height)
-    mdirec.plot(ax[8], mtime, mheight)
+
+    wind.horizontal_wind_direction.plot(ax[8], wind.time, wind.height)
+    mdirec.plot(ax[9], mtime, mheight)
 
     writer.add_figure(f"wind-{args.site}_{args.date}", fig)
 
@@ -227,6 +224,15 @@ def _from_raw(args: argparse.Namespace) -> None:
 
 def _haloreader_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--log-level",
+        default="info",
+        choices=["debug", "info", "warning", "error", "critical"],
+    )
+    levels = {
+        "critical": logging.CRITICAL,
+    }
+
     subparsers = parser.add_subparsers(
         title="subcommands", dest="subcommand", required=True
     )

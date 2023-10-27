@@ -46,3 +46,17 @@ def timestamp2str(stamp: float | list[float]) -> str | list[str]:
     if isinstance(stamp, list):
         return [_timestamp2str(s) for s in stamp]
     return _timestamp2str(stamp)
+
+
+
+
+def color_red(s: str):
+    return f"\033[91m{s}\033[0m"
+
+
+def color_blue(s: str):
+    return f"\033[34m{s}\033[0m"
+
+
+def color_yellow(s: str):
+    return f"\033[33m{s}\033[0m"

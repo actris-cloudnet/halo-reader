@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.ndimage import generic_filter
 from sklearn.cluster import KMeans
 
 from haloreader.exceptions import SuspiciousResult, UnexpectedInput
@@ -11,6 +12,7 @@ def compute_wind(
     elevation: Variable,
     azimuth: Variable,
     radial_velocity: Variable,
+    intensity: Variable,
 ) -> dict[str, Variable]:
     """
     Parameters
@@ -41,8 +43,12 @@ def compute_wind(
     wind_time_ = []
     wind_elevation_ = []
     wind_components_ = []
+    scan_max_intensity_ = []
+    scan_rmse_ = []
 
-    if len(elevation.data) == 0 or (not np.allclose(elevation.data, elevation.data[0])):
+    if len(elevation.data) == 0 or (
+        not np.allclose(np.round(elevation.data, 1), elevation.data[0])
+    ):
         raise UnexpectedInput
 
     for j in range(nscans):
@@ -52,11 +58,13 @@ def compute_wind(
         elevation_ = elevation.data[pick_scan]
         azimuth_ = azimuth.data[pick_scan]
         radial_velocity_ = radial_velocity.data[pick_scan]
-        wind_components_.append(
-            _compute_wind_components(elevation_, azimuth_, radial_velocity_)[
-                np.newaxis, :, :
-            ]
+        intensity_ = intensity.data[pick_scan]
+        scan_max_intensity_.append(
+            np.max(intensity.data[pick_scan], axis=0)[np.newaxis, :]
         )
+        wcomp_, rmse_ = _compute_wind_components(elevation_, azimuth_, radial_velocity_)
+        wind_components_.append(wcomp_[np.newaxis, :, :])
+        scan_rmse_.append(rmse_[np.newaxis, :])
         wind_elevation_.append(elevation_[0])
     wind_components = np.concatenate(wind_components_)
     wind_time = np.array(wind_time_)
@@ -68,6 +76,10 @@ def compute_wind(
         wind_components[:, :, 0], wind_components[:, :, 1]
     )
     horizontal_wind_direction[horizontal_wind_direction < 0] += 2 * np.pi
+    scan_max_intensity = np.concatenate(scan_max_intensity_)
+    scan_rmse = np.concatenate(scan_rmse_)
+    mask = _compute_mask(wind_components, scan_max_intensity, scan_rmse)
+
     height = range_.data * np.sin(np.deg2rad(elevation.data[0]))
     return {
         "time": Variable(
@@ -116,6 +128,7 @@ def compute_wind(
             units="degrees",
             data=np.degrees(horizontal_wind_direction),
         ),
+        "mask": mask,
     }
 
 
@@ -133,4 +146,35 @@ def _compute_wind_components(
         )
     )
     A_inv = np.linalg.pinv(A)
-    return (A_inv @ radial_velocity).T
+
+    w = A_inv @ radial_velocity
+    r_appr = A @ w
+    rmse = np.sqrt(np.sum((r_appr - radial_velocity) ** 2, axis=0) / r_appr.shape[0])
+    return w.T, rmse
+
+
+def _compute_mask(comp, intensity, rmse):
+    """
+    Parameters
+    ----------
+    comp[t,r,i]: wind components
+        t := time dimension
+        r := range dimension
+        i := component index
+            i=0: zonal wind
+            i=1: meridional wind
+            i=0: vertical wind
+    """
+
+    def neighbour_diff(X):
+        mdiff = np.max(np.abs(X - X[len(X) // 2]))
+        return mdiff
+
+    neighbour_mask = np.any(
+        generic_filter(comp, neighbour_diff, size=(1, 3, 1)) > 5, axis=2
+    )
+
+    ## RMSE
+    # rmse_th = 4.834278527280794
+    rmse_th = 4.8
+    return (rmse > rmse_th) | neighbour_mask

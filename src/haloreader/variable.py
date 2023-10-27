@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pprint import pprint
 from typing import Any, Protocol, TypeAlias, TypeGuard, runtime_checkable
 
 import cftime
@@ -18,7 +19,7 @@ from haloreader.type_guards import (
     is_ndarray,
     is_ndarray_list,
 )
-from haloreader.utils import UNIX_TIME_UNIT
+from haloreader.utils import UNIX_TIME_UNIT, color_blue, color_red, color_yellow
 
 DataType: TypeAlias = np.ndarray | int | float | None
 
@@ -33,6 +34,18 @@ class Variable:
     units: str | None = None
     dimensions: tuple[str, ...] | None = None
     data: DataType = None
+
+    def print_head(self) -> None:
+        print(color_red(self.name))
+        for attr_name in set(self.__dataclass_fields__.keys()) - {
+            "name",
+            "data",
+        }:
+            attr_val = getattr(self, attr_name)
+            if attr_val is not None:
+                print(f"{color_blue(attr_name)}: {attr_val}")
+        if isinstance(self.data, np.ndarray):
+            print(f"{color_blue('data shape')}: {self.data.shape}")
 
     @classmethod
     def is_variable_list(cls, val: list[Any]) -> TypeGuard[list[Variable]]:
@@ -160,7 +173,11 @@ class Variable:
         )
 
     def plot(
-        self, ax: Axes, time: Variable | None = None, height: Variable | None = None
+        self,
+        ax: Axes,
+        time: Variable | None = None,
+        height: Variable | None = None,
+        mask: np.ndarray | None = None,
     ) -> None:
         if "intensity" in self.name:
             _plot_intensity(self, ax, time, height)
@@ -175,7 +192,7 @@ class Variable:
         elif "wind_direction" in self.name:
             _plot_wind_direction(self, ax, time, height)
         elif "wind" in self.name:
-            _plot_wind(self, ax, time, height)
+            _plot_wind(self, ax, time, height, mask)
         else:
             raise NotImplementedError(
                 f"Plotting not implemented for variable {self.name}"
@@ -280,7 +297,11 @@ def _plot_wind_observed_surface(
 
 
 def _plot_wind(
-    var: Variable, ax: Axes, time: Varriable | None, height: Varriable | None
+    var: Variable,
+    ax: Axes,
+    time: Varriable | None,
+    height: Varriable | None,
+    mask: np.ndarray | None = None,
 ) -> None:
     if "observed" in var.name and "surface" in var.name:
         _plot_wind_observed_surface(var, ax, time)
@@ -293,9 +314,11 @@ def _plot_wind(
         height = height.median(axis=0)
 
     if height and len(height.dimensions) == 1:
-        low = height.data < 3000
+        low = height.data < 10000
         var = var[:, low]
         height = height[low]
+        if isinstance(mask, np.ndarray):
+            mask = mask[:,low]
 
     if "speed" in var.name.lower():
         cmap = "Reds"
@@ -306,6 +329,10 @@ def _plot_wind(
     else:
         cmap = "RdBu_r"
         vmin, vmax = (-20, 20)
+    if isinstance(mask, np.ndarray):
+        var.data[mask] = np.nan
+    else:
+        data = var.data
     im = ax.imshow(
         var.data.T,
         origin="lower",
@@ -351,7 +378,7 @@ def _plot_wind_direction(
         height = height.median(axis=0)
 
     if height and len(height.dimensions) == 1:
-        low = height.data < 3000
+        low = height.data < 9000
         var = var[:, low]
         height = height[low]
 
