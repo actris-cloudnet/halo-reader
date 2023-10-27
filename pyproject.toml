@@ -28,8 +28,11 @@ dependencies = [
   "matplotlib",
   "flask",
   "requests",
+  "urllib3",
   "scikit-learn",
   "scipy",
+  "pandas",
+  "tabulate",
 ]
 
 [project.urls]
@@ -50,6 +53,8 @@ dev = [
   "isort",
   "pre-commit",
   "types-requests",
+  "types-tabulate",
+  "pandas-stubs",
   "cfchecker"
 ]
 
@@ -85,6 +90,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "scipy.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests.*"
 ignore_missing_imports = true
 
 [tool.black]
