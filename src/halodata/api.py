@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import logging
 import pickle
@@ -19,7 +20,7 @@ CACHE_PATH = Path("cache")
 
 
 def cache(get: Callable) -> Callable:
-    def func_wrap(api: Api, path: str, params: dict, _no_cache: bool) -> list:
+    def func_wrap(api: Api, path: str, params: dict, _no_cache: bool = False) -> list:
         digest = hash_string(f"path\n{path}params\n{json.dumps(params)}")
         cache_path = CACHE_PATH / digest
         if cache_path.is_file() and not _no_cache:
@@ -54,8 +55,10 @@ class Api:
         self.api_endpoint = "https://cloudnet.fmi.fi/api"
 
     @cache
-    def get(self, path: str, params: dict, _no_cache: bool) -> list:
-        res = requests.get(f"{self.api_endpoint}/{path}", params=params, timeout=1800)
+    def get(self, path: str, params: dict, _no_cache: bool = False) -> list:
+        res = self.session.get(
+            f"{self.api_endpoint}/{path}", params=params, timeout=1800
+        )
         if res.ok:
             data = res.json()
             if isinstance(data, list):
@@ -64,6 +67,10 @@ class Api:
                 f"Unexpected response type from api: {type(data)}"
             )
         raise exceptions.ApiRequestError(f"Api request error: {res.status_code}")
+
+    def get_record_content(self, rec: dict) -> io.BytesIO:
+        res = self.session.get(rec["downloadUrl"])
+        return io.BytesIO(res.content)
 
 
 def hash_string(string: str) -> str:
