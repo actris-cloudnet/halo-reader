@@ -1,8 +1,9 @@
 import argparse
 import datetime
 import logging
-from pathlib import Path
 from glob import glob
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 
 from haloboard.writer import Writer

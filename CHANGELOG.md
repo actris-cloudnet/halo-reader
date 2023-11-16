@@ -12,6 +12,11 @@
 
 ### Fixed
 
+## [0.1.9] - 2023-11-16
+
+### Fixed
+- Fixed globbing
+
 ## [0.1.8] - 2023-10-17
 
 ### Changed
@@ -127,3 +132,5 @@
 [0.1.6]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.6
 [0.1.7]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.7
 [0.1.8]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.8
+[0.1.9]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.9
+[0.1.9]: https://github.com/actris-cloudnet/halo-reader/releases/tag/v0.1.9
