@@ -2,7 +2,7 @@ import argparse
 import datetime
 import logging
 from pathlib import Path
-
+from glob import glob
 import matplotlib.pyplot as plt
 
 from haloboard.writer import Writer
@@ -65,13 +65,29 @@ def _from_cloudnet(args: argparse.Namespace) -> None:
         writer.add_figure(f"halo_{args.site}_{args.date}", fig)
 
 
+def _parse_files_from_arg(path_list: list) -> list:
+    allowed_wildcards = "*?"
+    files = []
+    for src in path_list:
+        if any((c in allowed_wildcards) for c in src.name):
+            wildcard_files = glob(src.name)
+            if wildcard_files:
+                for wildcard_file in wildcard_files:
+                    files.append(Path(wildcard_file))
+        else:
+            files.append(src)
+    return files
+
+
 def _from_raw(args: argparse.Namespace) -> None:
     halo_src = [src for src in args.src if src.name.endswith(".hpl")]
+    halo_src = _parse_files_from_arg(halo_src)
     bg_src = [
         src
         for src in args.src
         if src.name.startswith("Background") and src.name.endswith(".txt")
     ]
+    bg_src = _parse_files_from_arg(bg_src)
     halo = read(halo_src)
     if halo is None:
         log.warning("No data")
